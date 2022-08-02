@@ -36,8 +36,8 @@ def main(event, context):
     """
     if "data" in event:
         event = json.loads(base64.b64decode(event["data"]).decode("utf-8"))
-    print("Event: " + str(event))
-    print("Context: " + str(context))
+    print(f"Event: {str(event)}")
+    print(f"Context: {str(context)}")
     if event == {} or is_manifest(context) is False:
         bucket_name = os.environ["BUCKET"]
         storage_client = storage.Client()
@@ -57,11 +57,11 @@ def match_bag(context, bucket):
     """
     filename = context.resource["name"]
     matcher = re.search(
-        r"projects/_/buckets/" + bucket.name + r"/objects/(.*)/data/.*",
-        filename)
+        f"projects/_/buckets/{bucket.name}/objects/(.*)/data/.*", filename
+    )
+
     try:
-        return [matcher.group(1)
-               ]  # Only match on changes to files within data/ directory
+        return [matcher[1]]
     except:
         bags = get_bags(bucket, None)
         for bag in bags:
@@ -133,10 +133,7 @@ class BagIt:
         """Retrieve files with metadata present in a bag"""
         blobs = self.bucket.list_blobs(
             prefix=f"{self.bag}/{DATA_DIRECTORY_NAME}/")
-        blobs_with_metadata = []
-        for blob in blobs:
-            blobs_with_metadata.append(self.get_metadata(blob.name))
-        return blobs_with_metadata
+        return [self.get_metadata(blob.name) for blob in blobs]
 
     def get_metadata(self, blob_name):
         """Transforms metadata into a dict object

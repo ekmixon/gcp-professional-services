@@ -53,8 +53,9 @@ class TestBigQueryLoadBatches(unittest.TestCase):
             # based on the 15TB max batch size we are aiming for.
             for i in range(3):
                 f.write(
-                    '       {}  2017-08-17T22:49:53Z  gs://python-dataflow-example/data_files/dummy_6TB_{}.csv \n'
-                    .format(6 * BYTES_IN_TB, i))
+                    f'       {6 * BYTES_IN_TB}  2017-08-17T22:49:53Z  gs://python-dataflow-example/data_files/dummy_6TB_{i}.csv \n'
+                )
+
 
             # Add the footer line of the gsutil output.
             f.write('TOTAL: 3 objects, 180000000000000 bytes (18 TB)')
@@ -70,7 +71,7 @@ class TestBigQueryLoadBatches(unittest.TestCase):
         self.assertEqual(actual_batches, expected_batches)
 
     def tearDown(self):
-        cmd = 'rm ' + self.filename
+        cmd = f'rm {self.filename}'
         os.system(cmd)
 
 

@@ -31,5 +31,4 @@ USE_CLOUD_IDENTITY = False
 def sync_groups(request):
   group_sync.GroupSync.sync_all(DOMAIN, ADMIN_EMAIL, DATASET,
                                 GROUPS_USERS_TABLE_NAME, USE_CLOUD_IDENTITY)
-  return 'Group membership from domain {} copied to table {}.{}'.format(
-      DOMAIN, DATASET, GROUPS_USERS_TABLE_NAME)
+  return f'Group membership from domain {DOMAIN} copied to table {DATASET}.{GROUPS_USERS_TABLE_NAME}'

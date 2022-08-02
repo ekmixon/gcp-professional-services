@@ -130,7 +130,7 @@ with models.DAG(
         execution_date = dbt_args['execution_date']
 
         # The pod id should be unique for each execution date
-        pod_id = 'dbt_cli_{}_{}'.format(cmd, execution_date)
+        pod_id = f'dbt_cli_{cmd}_{execution_date}'
         KubernetesPodOperator(
             task_id=pod_id,
             name=pod_id,

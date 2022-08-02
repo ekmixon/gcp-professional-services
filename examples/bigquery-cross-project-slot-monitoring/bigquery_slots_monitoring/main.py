@@ -51,13 +51,14 @@ class FanInMetrics(webapp2.RequestHandler):
     for src_project in metrics.get_projects(config.BILLING_ACCOUNT):
       taskqueue.add(
           queue_name='copy-metrics',
-          name=filter(str.isalnum, '%s%s' % (src_project, date_string)),
+          name=filter(str.isalnum, f'{src_project}{date_string}'),
           url='/CopyMetrics',
           method='GET',
           params={
               'src_project': src_project,
               'dst_project': config.PROJECT_ID,
-          })
+          },
+      )
 
 
 class CopyMetrics(webapp2.RequestHandler):

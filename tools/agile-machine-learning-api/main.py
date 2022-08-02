@@ -116,7 +116,7 @@ def app_train():
             cfg['bucket_name'],
             payload['export_dir'],
             jobid)
-        APP.logger.info('[{}] Config file loaded'.format(jobid))
+        APP.logger.info(f'[{jobid}] Config file loaded')
         response = train.post(
             cfg=cfg,
             train_csv_path=train_csv_path,
@@ -155,18 +155,16 @@ def app_train():
             export_dir=export_dir,
             jobid=jobid)
 
-        APP.logger.info('[{}] '.format(jobid) + str(payload))
-        APP.logger.info('[{}] Training Job submitted to CMLE'.format(jobid))
-        return_message = json.dumps({
-            "Success": True,
-            "Message":
-                "{}/{}?project={}".format(get_job_link(),
-                                          jobid, cfg['project_id']),
-            "Data": {
-                'jobid': jobid,
-                'response': response
+        APP.logger.info(f'[{jobid}] ' + str(payload))
+        APP.logger.info(f'[{jobid}] Training Job submitted to CMLE')
+        return_message = json.dumps(
+            {
+                "Success": True,
+                "Message": f"{get_job_link()}/{jobid}?project={cfg['project_id']}",
+                "Data": {'jobid': jobid, 'response': response},
             }
-        })
+        )
+
         response_code = 200
 
     except IOError as err:
@@ -238,7 +236,7 @@ def app_deploy():
                                      "Data": response})
 
         APP.logger.info('route /deploy has been called')
-        APP.logger.info('[{}]'.format(payload))
+        APP.logger.info(f'[{payload}]')
         APP.logger.info(return_message)
         response_code = 200
 
@@ -312,7 +310,7 @@ def app_predict():
             "Message": "Predictions done",
             "Data": [["%.4f" % x for x in point['probabilities']] for point in response]})
 
-        APP.logger.info('[{}]'.format(payload))
+        APP.logger.info(f'[{payload}]')
         APP.logger.info(return_message)
         response_code = 200
 
@@ -403,10 +401,15 @@ def lime_prediction():
 
     except KeyError as err:
         response_code = 500
-        APP.logger.error(
-            str('Following feature[s] missing in the data provided {}'.format(err)))
-        return_message = json.dumps({"Success": False, "Message": str(
-            'Following feature[s] missing in the data provided {}'.format(err)), "Data": {}})
+        APP.logger.error(f'Following feature[s] missing in the data provided {err}')
+        return_message = json.dumps(
+            {
+                "Success": False,
+                "Message": f'Following feature[s] missing in the data provided {err}',
+                "Data": {},
+            }
+        )
+
     finally:
         return Response(
             return_message,
@@ -436,16 +439,10 @@ def lime_prediction_2():
         response_code = 200
         return_message = json.dumps(
             {"Success": True, "Message": result, "Data": []})
-    except IOError as err:
+    except (IOError, ValueError) as err:
         APP.logger.error(str(err))
         return_message = json.dumps(
             {"Success": False, "Message": "Please check the config.yaml file", "Data": []})
-        response_code = 500
-
-    except ValueError as err:
-        APP.logger.error(str(err))
-        return_message = json.dumps(
-            {"Success": False, "Message": str(err), "Data": []})
         response_code = 500
 
     except AssertionError as err:

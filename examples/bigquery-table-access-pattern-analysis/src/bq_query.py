@@ -40,9 +40,7 @@ class BQQuery():
 
     @staticmethod
     def is_safe_to_create_table():
-        if not BQQuery.output_table_suffix:
-            return False
-        return True
+        return bool(BQQuery.output_table_suffix)
 
     @staticmethod
     def get_datetime_constraint():
@@ -287,8 +285,7 @@ class BQQuery():
         LIMIT {top}
         """
         client = bigquery.Client(location=BQQuery.get_location())
-        query_job = client.query(query)
-        return query_job
+        return client.query(query)
 
     @staticmethod
     def get_tables_involved(table):

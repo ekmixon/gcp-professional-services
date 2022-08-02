@@ -119,16 +119,16 @@ with models.DAG(
         # Check the documentation for the full parameter details
         # https://cloud.google.com/composer/docs/how-to/using/using-kubernetes-pod-operator#airflow-2
         KubernetesPodOperator(
-            task_id='dbt_cli_{}'.format(cmd),
-            name='dbt_cli_{}'.format(cmd),
+            task_id=f'dbt_cli_{cmd}',
+            name=f'dbt_cli_{cmd}',
             image_pull_policy='Always',
             arguments=[cmd] + dbt_cli_args,
             namespace='default',
-            get_logs=True,  # Capture logs from the pod
-            log_events_on_failure=True,  # Capture and log events in case of pod failure
-            is_delete_operator_pod=True, # To clean up the pod after runs
+            get_logs=True,
+            log_events_on_failure=True,
+            is_delete_operator_pod=True,
             image=IMAGE,
-            secrets=[secret_volume]  # Set Kubernetes secret reference to dbt's service account JSON
+            secrets=[secret_volume],
         ).execute(context)
 
     # Running the dbt run command

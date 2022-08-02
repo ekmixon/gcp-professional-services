@@ -42,9 +42,7 @@ def get_model_path(cfg, job_id, trained_model_location):
     job_dir = trained_model_location.replace(cfg['bucket_name'] + '/', '')
     prefix_path = os.path.join(job_dir, job_id)
     blobs = bucket.list_blobs(prefix=prefix_path)
-    model_path = [b.name.replace(prefix_path, '')
-                  for b in blobs][1].replace('/', '')
-    return model_path
+    return [b.name.replace(prefix_path, '') for b in blobs][1].replace('/', '')
 
 
 def download_file_from_gcp(bucket_name, source_blob_name):
@@ -98,7 +96,7 @@ def upload_to_gcp(bucket_name, source_file_name):
             source_file_name: str, path of the source blob"""
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
-    blob = bucket.blob('lime/' + source_file_name)
+    blob = bucket.blob(f'lime/{source_file_name}')
     blob.upload_from_filename(source_file_name)
     os.remove(source_file_name)
 
@@ -113,18 +111,22 @@ def getting_signature(export_dir):
     graph = predictor.graph
     col_list = [a.name for a in graph.as_graph_def().node if a.op ==
                 'Placeholder']
-    inputs = dict()
-    for t in col_list:
-        inputs[t] = tf.saved_model.build_tensor_info(
-            graph.get_tensor_by_name(str(t) + ':0'))
+    inputs = {
+        t: tf.saved_model.build_tensor_info(
+            graph.get_tensor_by_name(f'{str(t)}:0')
+        )
+        for t in col_list
+    }
+
     output_name = [
         n.name for n in graph.as_graph_def().node if n.op == 'Softmax'][0]
     output = tf.saved_model.build_tensor_info(
-        graph.get_tensor_by_name(str(output_name) + ':0'))
-    signature = tf.saved_model.build_signature_def(
-        inputs=inputs, outputs={
-            'output': output}, method_name='Classification')
-    return signature
+        graph.get_tensor_by_name(f'{str(output_name)}:0')
+    )
+
+    return tf.saved_model.build_signature_def(
+        inputs=inputs, outputs={'output': output}, method_name='Classification'
+    )
 
 
 def get_explainer(export_dir):
@@ -158,16 +160,16 @@ def lime_predictor(explainer, dict_mapping, feature_names, data_point, predictor
         if key in dict_mapping.keys():
             data_point[key] = dict_mapping[key].keys()[
                 dict_mapping[key].values().index(str(value))]
-    feat_list = list()
+    feat_list = []
 
     def predict_function(X):
         """
         Creates a Probability predicting function from the saved model
         """
-        input_dict = dict()
+        input_dict = {}
         for index, feature_name in enumerate(feature_names):
             if feature_name in dict_mapping.keys():
-                feat_list = list()
+                feat_list = []
                 for cat_value in X[:, index]:
                     feat_list.append(
                         dict_mapping[feature_name][int(cat_value)])
@@ -194,13 +196,11 @@ def prediction_without_report(data_point, predictor):
     Returns;
         return_dict: dict, A dictionary containing the predictions
     """
-    new_dict = dict()
-    for key, value in data_point.items():
-        new_dict[key] = (value,)
-    return_dict = dict()
-    for index, result in enumerate(predictor(new_dict)['output'][0]):
-        return_dict['class_' + str(index)] = float("{0:.4f}".format(result))
-    return return_dict
+    new_dict = {key: (value,) for key, value in data_point.items()}
+    return {
+        f'class_{str(index)}': float("{0:.4f}".format(result))
+        for index, result in enumerate(predictor(new_dict)['output'][0])
+    }
 
 
 def adding_text_to_html(html_file, explanation, dict_mapping):
@@ -215,12 +215,10 @@ def adding_text_to_html(html_file, explanation, dict_mapping):
         if feature.split('=')[0] in dict_mapping.keys():
             text_exp += 'Categorical feature "{}" being "{}" is contributing to the prediction with importance of \
                 {} <br>'.format(feature.split('=')[0], feature.split('=')[1], "{0:.3f}".format(importance))
-            text_exp += ' \n'
         else:
             text_exp += 'Continous Feature "{}" has been contributing to the prediction with importance of \
                 {} <br>'.format(feature, "{0:.3f}".format(importance))
-            text_exp += ' \n'
-
+        text_exp += ' \n'
     cleaned_html = Soup(html_file, features="lxml")
     string = '''<div style="text-align:right;"><a href="#" onclick="document.getElementById('text-explanation').classList.toggle('is-hidden')">info</a></div>
             <style>
@@ -260,7 +258,7 @@ def visualization(cfg, job_id, model_dir, predict_json, batch_prediction, d_poin
     Returns:
         result: dict, A output dictionary containing the predicted results"""
     gcp_bucket_name = cfg.get('bucket_name', None)
-    result = dict()
+    result = {}
     if gcp_bucket_name:
         export_dir = get_model_path(cfg, job_id, model_dir)
         download_folder_from_gcp(gcp_bucket_name, export_dir)
@@ -279,14 +277,18 @@ def visualization(cfg, job_id, model_dir, predict_json, batch_prediction, d_poin
         explanation = lime_predictor(explainer=explainer, dict_mapping=dict_mapping,
                                      feature_names=feature_names, data_point=predict_point, predictor=predictor)
         html_file = explanation.as_html()
-        save(gcp_bucket_name, adding_text_to_html(
-            html_file, explanation, dict_mapping), str(name) + '.html')
+        save(
+            gcp_bucket_name,
+            adding_text_to_html(html_file, explanation, dict_mapping),
+            f'{str(name)}.html',
+        )
+
         predict_point_copy = predict_point.copy()
-        result['prediction'] = {'saved_report': str(name) + '.html'}
+        result['prediction'] = {'saved_report': f'{str(name)}.html'}
         result['prediction'].update(
             {'output': (prediction_without_report(predict_point_copy, predictor))})
     else:
-        result = dict()
+        result = {}
         for key, value in predict_point.items():
             for extra_key in [a for a in value.keys() if a not in feature_names]:
                 del value[extra_key]
@@ -295,7 +297,7 @@ def visualization(cfg, job_id, model_dir, predict_json, batch_prediction, d_poin
                 explanation = lime_predictor(
                     explainer=explainer, dict_mapping=dict_mapping, feature_names=feature_names, data_point=value,
                     predictor=predictor)
-                output_path_name = '{}_{}.html'.format(name, key)
+                output_path_name = f'{name}_{key}.html'
                 html_file = explanation.as_html()
                 save(gcp_bucket_name, adding_text_to_html(
                     html_file, explanation, dict_mapping), output_path_name)
@@ -326,7 +328,7 @@ def visualization_2(cfg, job_id, model_dir, predict_json, batch_prediction, name
     Returns:
         result: list, A list containing the result of the model"""
     gcp_bucket_name = cfg.get('bucket_name', None)
-    result = list()
+    result = []
     if gcp_bucket_name:
         export_dir = get_model_path(cfg, job_id, model_dir)
         download_folder_from_gcp(gcp_bucket_name, export_dir)
@@ -346,11 +348,15 @@ def visualization_2(cfg, job_id, model_dir, predict_json, batch_prediction, name
                                      feature_names=feature_names, data_point=predict_point, predictor=predictor)
         html_file = explanation.as_html()
         data_point_copy = predict_point.copy()
-        save(gcp_bucket_name, adding_text_to_html(
-            html_file, explanation, dict_mapping), str(name) + '.html')
+        save(
+            gcp_bucket_name,
+            adding_text_to_html(html_file, explanation, dict_mapping),
+            f'{str(name)}.html',
+        )
+
         result.append(prediction_without_report(data_point_copy, predictor))
     else:
-        result = list()
+        result = []
         for index, prediction_point in enumerate(predict_point):
             prediction_point_copy = prediction_point.copy()
             for extra_key in [a for a in prediction_point.keys() if a not in feature_names]:
@@ -364,7 +370,7 @@ def visualization_2(cfg, job_id, model_dir, predict_json, batch_prediction, name
                                              feature_names=feature_names, data_point=prediction_point,
                                              predictor=predictor)
                 html_file = explanation.as_html()
-                output_path_name = '{}_{}.html'.format(name, index)
+                output_path_name = f'{name}_{index}.html'
                 save(gcp_bucket_name, adding_text_to_html(
                     html_file, explanation, dict_mapping), output_path_name)
     try:

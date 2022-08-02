@@ -165,9 +165,10 @@ def _get_embedding_matrix(embedding_size, tft_output, vocab_name):
   """Returns a num_items x embedding_size lookup table of embeddings."""
   vocab_size = tft_output.vocabulary_size_by_name(vocab_name)
   return tf.get_variable(
-      "{}_embedding".format(vocab_name),
+      f"{vocab_name}_embedding",
       (vocab_size, embedding_size),
-      initializer=tf.initializers.uniform_unit_scaling())
+      initializer=tf.initializers.uniform_unit_scaling(),
+  )
 
 
 def _update_embedding_matrix(row_indices, rows, embedding_size, tft_output,

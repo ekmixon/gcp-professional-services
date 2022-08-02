@@ -61,9 +61,7 @@ def preprocessing_fn(inputs):
     Dictionary of output columns mapping strings to `Tensor` or `SparseTensor`.
   """
 
-  output = {}
-  for c in constants.FEATURE_COLUMNS:
-    output[c] = tft.scale_to_0_1(inputs[c])
+  output = {c: tft.scale_to_0_1(inputs[c]) for c in constants.FEATURE_COLUMNS}
   output[constants.LABEL_COLUMN] = inputs[constants.LABEL_COLUMN]
   output[constants.KEY_COLUMN] = inputs[constants.KEY_COLUMN]
   return output
@@ -104,12 +102,11 @@ def check_size(p, name, path):
       (s, count) = sum_count
       return count, (1.0 * s / count) if count else float('NaN')
 
-  return (p
-          | 'CheckMapTo_1_{}'.format(name) >>
-          beam.Map(lambda x: x[constants.LABEL_COLUMN])
-          | 'CheckSum_{}'.format(name) >> beam.CombineGlobally(_Combine())
-          | 'CheckRecord_{}'.format(name) >> beam.io.WriteToText(
-              '{}.txt'.format(path)))
+  return ((p
+           | (f'CheckMapTo_1_{name}' >>
+              beam.Map(lambda x: x[constants.LABEL_COLUMN])))
+          | f'CheckSum_{name}' >> beam.CombineGlobally(_Combine())
+          | (f'CheckRecord_{name}' >> beam.io.WriteToText(f'{path}.txt')))
 
 
 @beam.ptransform_fn
@@ -128,12 +125,10 @@ def shuffle_data(p):
     def process(self, element):
       yield (random.random(), element)
 
-  shuffled_data = (
-      p
-      | 'PairWithRandom' >> beam.ParDo(_AddRandomKey())
-      | 'GroupByRandom' >> beam.GroupByKey()
-      | 'DropRandom' >> beam.FlatMap(lambda k__vs: k__vs[1]))
-  return shuffled_data
+  return (p
+          | 'PairWithRandom' >> beam.ParDo(_AddRandomKey())
+          | 'GroupByRandom' >> beam.GroupByKey()
+          | 'DropRandom' >> beam.FlatMap(lambda k__vs: k__vs[1]))
 
 
 @beam.ptransform_fn
@@ -173,11 +168,10 @@ def randomly_split(p, train_size, validation_size, test_size):
           DatasetType.TEST.name,
           main=DatasetType.TRAIN.name))
 
-  split_data_id = {}
-  for k in [DatasetType.TRAIN, DatasetType.VAL, DatasetType.TEST]:
-    split_data_id[k] = split_data[k.name]
-
-  return split_data_id
+  return {
+      k: split_data[k.name]
+      for k in [DatasetType.TRAIN, DatasetType.VAL, DatasetType.TEST]
+  }
 
 
 @beam.ptransform_fn
@@ -193,13 +187,10 @@ def read_data(p, bq_table, project_id):
   """
 
   column_list = ', '.join(constants.FEATURE_COLUMNS + [constants.LABEL_COLUMN])
-  query = 'SELECT {} FROM [{}:{}.{}]'.format(column_list, project_id,
-                                             constants.BQ_DATASET, bq_table)
+  query = f'SELECT {column_list} FROM [{project_id}:{constants.BQ_DATASET}.{bq_table}]'
 
-  data = (
-      p | 'ReadData' >> beam.io.Read(
-          beam.io.BigQuerySource(query=query, use_standard_sql=False)))
-  return data
+  return p | 'ReadData' >> beam.io.Read(
+      beam.io.BigQuerySource(query=query, use_standard_sql=False))
 
 
 def make_input_schema():
@@ -211,9 +202,10 @@ def make_input_schema():
     A dictionary mapping keys of column names to `tf.FixedLenFeature` instances.
   """
 
-  feature_spec = {}
-  for c in constants.FEATURE_COLUMNS:
-    feature_spec[c] = tf.FixedLenFeature(shape=[], dtype=tf.float32)
+  feature_spec = {
+      c: tf.FixedLenFeature(shape=[], dtype=tf.float32)
+      for c in constants.FEATURE_COLUMNS
+  }
   feature_spec[constants.LABEL_COLUMN] = tf.FixedLenFeature(
       shape=[], dtype=tf.int64)
   feature_spec[constants.KEY_COLUMN] = tf.FixedLenFeature(
@@ -265,11 +257,8 @@ def oversampling(p):
       for _ in range(n):
         yield element
 
-  proc = (
-      p | 'DuplicateItemAndFlatten' >> beam.ParDo(
-          _Sample(), percent_positive=beam.pvalue.AsSingleton(percentage)))
-
-  return proc
+  return p | 'DuplicateItemAndFlatten' >> beam.ParDo(
+      _Sample(), percent_positive=beam.pvalue.AsSingleton(percentage))
 
 
 @beam.ptransform_fn
@@ -286,11 +275,8 @@ def store_transformed_data(data, schema, path, name=''):
     PCollection
   """
 
-  p = (
-      data
-      | 'WriteData{}'.format(name) >> tfrecordio.WriteToTFRecord(
-          path, coder=example_proto_coder.ExampleProtoCoder(schema.schema)))
-  return p
+  return data | (f'WriteData{name}' >> tfrecordio.WriteToTFRecord(
+      path, coder=example_proto_coder.ExampleProtoCoder(schema.schema)))
 
 
 @beam.ptransform_fn
@@ -383,11 +369,12 @@ def preprocess(p, output_dir, check_path, data_size, bq_table, split_data_path,
           test_size=test_size))
 
   for k in split_data:
-    split_data[k] |= 'AddHash_{}'.format(k.name) >> beam.ParDo(
+    split_data[k] |= f'AddHash_{k.name}' >> beam.ParDo(
         AddHash(),
         label_column=constants.LABEL_COLUMN,
         key_column=constants.KEY_COLUMN,
-        dtype=k)
+        dtype=k,
+    )
 
   # Splits test data into features pipeline and labels pipeline.
   if DatasetType.TEST not in split_data:
@@ -399,13 +386,13 @@ def preprocess(p, output_dir, check_path, data_size, bq_table, split_data_path,
 
   # Stores test data features and labels pipeline separately.
   for k in test_data:
-    _ = (
-        test_data[k]
-        | 'ParseJsonToString_{}'.format(k) >> beam.Map(json.dumps)
-        | 'StoreSplitData_{}'.format(k) >> beam.io.WriteToText(
+    _ = (test_data[k] | f'ParseJsonToString_{k}' >> beam.Map(json.dumps)) | (
+        f'StoreSplitData_{k}' >> beam.io.WriteToText(
             posixpath.join(
-                output_dir, split_data_path, 'split_data_{}_{}.txt'.format(
-                    DatasetType.TEST.name, k))))
+                output_dir,
+                split_data_path,
+                f'split_data_{DatasetType.TEST.name}_{k}.txt',
+            )))
 
   meta_data = dataset_metadata.DatasetMetadata(make_input_schema())
 
@@ -425,28 +412,28 @@ def preprocess(p, output_dir, check_path, data_size, bq_table, split_data_path,
   transformed_metadata, transformed_data = {}, {}
   for k in [DatasetType.TRAIN, DatasetType.VAL]:
     transformed_data[k], transformed_metadata[k] = (
-        ((split_data[k], meta_data), transform_fn)
-        | 'Transform{}'.format(k) >> beam_impl.TransformDataset())
+        (split_data[k], meta_data),
+        transform_fn,
+    ) | f'Transform{k}' >> beam_impl.TransformDataset()
 
   transformed_data[DatasetType.TRAIN] = (
       transformed_data[DatasetType.TRAIN]
       | 'OverSampleTraining' >> oversampling())
 
   for k in transformed_data:
-    _ = (
-        transformed_data[k]
-        | 'ShuffleData{}'.format(k) >> shuffle_data()
-        | 'StoreData{}'.format(k) >> store_transformed_data(
+    _ = (transformed_data[k] | f'ShuffleData{k}' >> shuffle_data()) | (
+        f'StoreData{k}' >> store_transformed_data(
             schema=transformed_metadata[k],
             path=posixpath.join(output_dir,
                                 constants.PATH_TRANSFORMED_DATA_SPLIT[k]),
-            name=DatasetType(k).name))
+            name=DatasetType(k).name,
+        ))
 
   for k in transformed_data:
-    _ = (
-        transformed_data[k] | 'CheckSize{}'.format(k.name) >> check_size(
-            name=DatasetType(k).name,
-            path=posixpath.join(output_dir, check_path, k.name)))
+    _ = transformed_data[k] | (f'CheckSize{k.name}' >> check_size(
+        name=DatasetType(k).name,
+        path=posixpath.join(output_dir, check_path, k.name),
+    ))
 
 
 def parse_arguments(argv):
@@ -475,8 +462,9 @@ def parse_arguments(argv):
       help='Run preprocessing on the cloud.')
   parser.add_argument(
       '--output_dir',
-      default='output-{}'.format(datetime.now().strftime('%Y%m%d%H%M%S')),
-      help='Directory in which to write outputs.')
+      default=f"output-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+      help='Directory in which to write outputs.',
+  )
   parser.add_argument(
       '--test_size', default=0.15, help='Fraction of data going into test set.')
   parser.add_argument(
@@ -534,17 +522,16 @@ def main():
 
   options = {
       'project':
-          args.project_id,
+      args.project_id,
       'job_name':
-          '{}-{}'.format(args.project_id,
-                         datetime.now().strftime('%Y%m%d%H%M%S')),
+      f"{args.project_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}",
       'setup_file':
-          posixpath.abspath(
-              posixpath.join(posixpath.dirname(__file__), 'setup.py')),
+      posixpath.abspath(
+          posixpath.join(posixpath.dirname(__file__), 'setup.py')),
       'temp_location':
-          temp_dir,
+      temp_dir,
       'save_main_session':
-          True
+      True,
   }
   pipeline_options = beam.pipeline.PipelineOptions(flags=[], **options)
 

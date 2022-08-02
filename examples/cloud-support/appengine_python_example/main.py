@@ -23,8 +23,9 @@ SERVICE_NAME = "cloudsupport"
 API_VERSION = "v2beta"
 API_DEFINITION_URL = ""
 ORGANIZATION_ID = '1234567890'  # TODO add organization ID:
-ORGANIZATION_AS_PARENT = 'organizations/' + ORGANIZATION_ID
-API_DEFINITION_URL = "https://cloudsupport.googleapis.com/$discovery/rest?version=" + API_VERSION
+ORGANIZATION_AS_PARENT = f'organizations/{ORGANIZATION_ID}'
+API_DEFINITION_URL = f"https://cloudsupport.googleapis.com/$discovery/rest?version={API_VERSION}"
+
 
 # The snippet below generates the Support API client library from the API Discovery Document.
 supportApiService = googleapiclient.discovery.build(
@@ -51,7 +52,7 @@ def index():
 
     case_list = supportApiService.cases().list(
         parent=ORGANIZATION_AS_PARENT).execute()
-    print("case list:" + str(case_list))
+    print(f"case list:{str(case_list)}")
     return render_template('index.html', title="page")
 
 
@@ -100,10 +101,13 @@ def create_support_case():
 # It builds the JSON request body from the fields submitted from the web form.
 def call_create_support_case_api(component, project, impact, googlemeet_link,
                                  subscribers, comments):
-    display_name = "TEST CASE - Please Join Google Meet Link: " + googlemeet_link + " ASAP"
+    display_name = (
+        f"TEST CASE - Please Join Google Meet Link: {googlemeet_link} ASAP"
+    )
+
 
     if impact:
-        display_name += " - " + impact
+        display_name += f" - {impact}"
 
     if not comments:
         comments += display_name
@@ -143,14 +147,24 @@ def call_create_support_case_api(component, project, impact, googlemeet_link,
 
     if project:
         try:
-            create_case_response = supportApiService.cases()\
-                .create(parent='projects/' + project, body=request_body)\
+            create_case_response = (
+                supportApiService.cases()
+                .create(parent=f'projects/{project}', body=request_body)
                 .execute()
+            )
+
 
             return build_response(project, create_case_response)
         except Exception as e:
-            error_message = "There was an issue creating the support case for project " + project + ", " \
-                            "because: " + e.error_details + ". The Support Case will be created on org level."
+            error_message = (
+                (
+                    f"There was an issue creating the support case for project {project}"
+                    + ", "
+                    "because: "
+                )
+                + e.error_details
+            ) + ". The Support Case will be created on org level."
+
             request_body['description'] = build_description_value(
                 project, impact, googlemeet_link, comments, error_message)
 
@@ -182,13 +196,13 @@ def build_description_value(project, impact, googlemeet_link, comments,
                             error_message):
     description = ""
     if project:
-        description += "Project Number: " + project + "\n"
+        description += f"Project Number: {project}" + "\n"
     if impact:
-        description += "Impact: " + impact + "\n"
+        description += f"Impact: {impact}" + "\n"
     if googlemeet_link:
-        description += "googlemeet Link: " + googlemeet_link + "\n"
+        description += f"googlemeet Link: {googlemeet_link}" + "\n"
     if comments:
-        description += "Comments: " + comments + ". "
+        description += f"Comments: {comments}. "
 
     if error_message:
         description += error_message

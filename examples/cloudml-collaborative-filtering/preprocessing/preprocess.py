@@ -107,7 +107,7 @@ def _preprocess_tft(raw_data, user_freq, item_freq):
           vocab_filename=constants.TAG_VOCAB_NAME,
           default_value=constants.TFT_DEFAULT_ID),
   }
-  features.update(tft_features)
+  features |= tft_features
   return features
 
 
@@ -163,9 +163,7 @@ def _split_data(examples, train_fraction=constants.TRAIN_SIZE,
     random_value = np.random.random()
     if random_value < train_fraction:
       return 0
-    if random_value < train_fraction + val_fraction:
-      return 1
-    return 2
+    return 1 if random_value < train_fraction + val_fraction else 2
 
   examples_split = examples | "SplitData" >> beam.Partition(partition_fn, 3)
   return zip([constants.TRAIN, constants.VAL, constants.TEST], examples_split)
@@ -212,7 +210,7 @@ def run(p, args):
   # pylint: disable=no-value-for-parameter
   query = bq_query.query
   if not args.cloud:
-    query = "{} LIMIT 10".format(query)
+    query = f"{query} LIMIT 10"
 
   raw_data = (p
               | "ReadBQ" >> ReadBQ(query)
@@ -225,5 +223,6 @@ def run(p, args):
           | "CleanTags" >> beam.Map(_clean_tags))
   data = _split_data(data)
   for name, dataset in data:
-    dataset | "Write{}Output".format(name) >> WriteOutput(
-        name, args.output_dir, constants.TRAIN_SPEC, args.plain_text)
+    (dataset
+     | (f"Write{name}Output" >> WriteOutput(
+         name, args.output_dir, constants.TRAIN_SPEC, args.plain_text)))

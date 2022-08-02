@@ -36,9 +36,7 @@ class TestDagIntegrity(unittest.TestCase):
         """
         self.assertFalse(
             len(self.dagbag.import_errors),
-            'DAG import failures. Errors: {}'.format(
-                self.dagbag.import_errors
-            )
+            f'DAG import failures. Errors: {self.dagbag.import_errors}',
         )
 
     def test_import_time(self):
@@ -46,7 +44,7 @@ class TestDagIntegrity(unittest.TestCase):
         for dag_id in self.dagbag.dag_ids:
             start = time.time()
 
-            dag_file = dag_id + ".py"
+            dag_file = f"{dag_id}.py"
             self.dagbag.process_file(dag_file)
 
             end = time.time()

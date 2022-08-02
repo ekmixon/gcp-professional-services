@@ -77,10 +77,10 @@ class BucketUtil(object):
                     table_size)
             """
             file_type, \
-                num_column, \
-                column_type, \
-                num_file, \
-                table_size = path_details
+                    num_column, \
+                    column_type, \
+                    num_file, \
+                    table_size = path_details
             for compression_type in compression_types[file_type]:
                 if compression_type == 'none':
                     extension = file_type
@@ -101,12 +101,12 @@ class BucketUtil(object):
                     name=path,
                 ).exists(gcs_client)
                 total_table_size = int(num_file) * \
-                    int(table_size.split('MB')[0])
-                if exists:
-                    if run_federated_query_benchmark and \
-                            (compression_type == 'snappy' or
-                             total_table_size > MB_IN_TB):
-                        continue
+                        int(table_size.split('MB')[0])
+                if exists and (
+                    not run_federated_query_benchmark
+                    or compression_type != 'snappy'
+                    and total_table_size <= MB_IN_TB
+                ):
                     path_set.add(path)
 
         logging.info('Discovering files from parameters list that exist'

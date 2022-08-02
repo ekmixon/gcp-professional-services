@@ -14,6 +14,7 @@
 
 """Custom serving program."""
 
+
 import os
 import logging
 
@@ -34,7 +35,7 @@ from google.cloud import storage
 # model_serving_container_environment_variables={'TRAINING_DATA_SCHEMA':
 # data_schema},
 DATA_SCHEMA = os.environ['TRAINING_DATA_SCHEMA']
-features = [field.split(':') for field in DATA_SCHEMA.split(';')][0:-1]
+features = [field.split(':') for field in DATA_SCHEMA.split(';')][:-1]
 feature_names = [item[0] for item in features]
 logging.info(f'feature schema: {features}')
 
@@ -102,8 +103,7 @@ def predict():
 @app.route('/health', methods=['GET', 'POST'])
 def health():
   """For direct API calls through request."""
-  status_code = flask.Response(status=200)
-  return status_code
+  return flask.Response(status=200)
 
 
 if __name__ == '__main__':

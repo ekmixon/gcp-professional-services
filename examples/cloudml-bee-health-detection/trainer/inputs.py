@@ -92,10 +92,7 @@ def _load_image(image_path):
     """
     image_string = tf.read_file(image_path)
     image_decoded = tf.image.decode_png(image_string, channels=3)
-    image_resized = tf.image.resize_images(
-        image_decoded,
-        [IMAGE_SIZE, IMAGE_SIZE])
-    return image_resized
+    return tf.image.resize_images(image_decoded, [IMAGE_SIZE, IMAGE_SIZE])
 
 
 def _create_image_path(image_path, image_id):

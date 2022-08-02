@@ -18,6 +18,7 @@ the original file reference to a BigQuery table with the labels
 identified by the Cloud Vision API.
 """
 
+
 import argparse
 import logging
 
@@ -29,7 +30,7 @@ from google.cloud.vision import types
 # Specify default parameters.
 INPUT_FILE = 'gs://python-dataflow-example/data_files/image-list.txt'
 BQ_DATASET = 'ImageLabelFlow'
-BQ_TABLE = BQ_DATASET + '.dogs_short'
+BQ_TABLE = f'{BQ_DATASET}.dogs_short'
 
 
 def detect_labels_uri(uri):

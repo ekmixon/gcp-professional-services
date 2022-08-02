@@ -36,10 +36,10 @@ def predict(project, model, data, version=None):
   """
 
   service = googleapiclient.discovery.build('ml', 'v1')
-  name = 'projects/{}/models/{}'.format(project, model)
+  name = f'projects/{project}/models/{model}'
 
   if version is not None:
-    name += '/versions/{}'.format(version)
+    name += f'/versions/{version}'
 
   response = service.projects().predict(
       name=name, body={
@@ -61,8 +61,7 @@ if __name__ == '__main__':
   version_name = 'v1' # Please modify accordingly
   data = []
   with open('sample_data/sample_json.txt') as f:
-    for line in f:
-      data.append(json.loads(line))
+    data.extend(json.loads(line) for line in f)
   print(data)
 
   print(

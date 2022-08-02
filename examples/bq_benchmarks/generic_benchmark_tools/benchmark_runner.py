@@ -156,10 +156,7 @@ class BenchmarkRunner:
         for path in existing_paths:
             dirname = os.path.dirname(path)
             if dirname not in self.files_to_skip:
-                if dirname in files_with_benchmark_data:
-                    verb = 'Duplicating'
-                else:
-                    verb = 'Processing'
+                verb = 'Duplicating' if dirname in files_with_benchmark_data else 'Processing'
                 logging.info('{0:s} benchmark table for {1:s}'.format(
                     verb,
                     dirname,
@@ -178,7 +175,7 @@ class BenchmarkRunner:
                 table_name = table.create_table()
                 table.load_from_gcs()
                 if self.run_federated_query_benchmark or \
-                        self.include_federated_query_benchmark:
+                            self.include_federated_query_benchmark:
 
                     self._run_federated_query(table_name, dirname)
                 table.delete_table()

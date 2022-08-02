@@ -22,6 +22,7 @@ Once triggered the DAG performs the following steps:
    status of the previous step.
 """
 
+
 import datetime
 import logging
 import os
@@ -36,8 +37,10 @@ from airflow.utils.trigger_rule import TriggerRule
 # We set the start_date of the DAG to the previous date. This will
 # make the DAG immediately available for scheduling.
 YESTERDAY = datetime.datetime.combine(
-    datetime.datetime.today() - datetime.timedelta(1),
-    datetime.datetime.min.time())
+    datetime.datetime.now() - datetime.timedelta(1),
+    datetime.datetime.min.time(),
+)
+
 
 # We define some variables that we will use in the DAG tasks.
 SUCCESS_TAG = 'success'

@@ -58,15 +58,13 @@ def test(hparams, estimator):
   else:
     test_data = pd.read_csv(hparams.test_file, index_col=0)
 
-  tf.logging.info('test_data.shape={}'.format(test_data.shape))
+  tf.logging.info(f'test_data.shape={test_data.shape}')
   # make predictions
   predictions = estimator.predict(input_fn=test_input)
-  preds = []
-  for pred_dict in predictions:
-    preds.append(pred_dict['probabilities'])
+  preds = [pred_dict['probabilities'] for pred_dict in predictions]
   preds = np.array(preds)
-  tf.logging.info('preds.shape={}'.format(preds.shape))
-  tf.logging.info('preds.max()={}'.format(preds.max()))
+  tf.logging.info(f'preds.shape={preds.shape}')
+  tf.logging.info(f'preds.max()={preds.max()}')
   # output metrics
   groundtruth = test_data.iloc[hparams.seq_len - 1:]
   pred_names = [x.replace('_on', '_pred')
@@ -75,7 +73,7 @@ def test(hparams, estimator):
   preds = pd.DataFrame(preds, columns=pred_names, index=groundtruth.index)
   df = pd.merge(groundtruth, preds, left_index=True, right_index=True)
   appliances_names = [x.replace('_pred', '') for x in pred_names]
-  for i, app in enumerate(appliances_names):
+  for app in appliances_names:
     precision = sklearn.metrics.precision_score(
       df[app + '_on'], df[app + '_pred'])
     recall = sklearn.metrics.recall_score(
@@ -92,8 +90,7 @@ def run_experiment(hparams):
   """
 
   select_cols = SELECT_COLUMN
-  feat_col_names = ['ActivePower_{}'.format(i + 1)
-                    for i in range(hparams.seq_len)]
+  feat_col_names = [f'ActivePower_{i + 1}' for i in range(hparams.seq_len)]
 
   # Construct input function for training, evaluation and testing
   # Note: Don't filter on the evaluation and test data
@@ -118,7 +115,7 @@ def run_experiment(hparams):
       .get('task', {}).get('trial', '')
   )
 
-  tf.logging.info('model dir {}'.format(model_dir))
+  tf.logging.info(f'model dir {model_dir}')
 
   # Experiment running configuration
   # Checkpoint is configured to be saved every ten minutes
@@ -304,7 +301,7 @@ if __name__ == '__main__':
 
   config = args.__dict__
   for k, v in config.items():
-    tf.logging.info('{}: {}'.format(k, v))
+    tf.logging.info(f'{k}: {v}')
 
   # Run the training job
   run_experiment(args)

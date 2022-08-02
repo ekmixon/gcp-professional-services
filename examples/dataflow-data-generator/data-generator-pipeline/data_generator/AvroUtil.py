@@ -28,8 +28,7 @@ def fix_record_for_avro(record, avro_schema):
             record[field_name] = fix_record_for_avro(
                 record[field_name], fastavro.parse_schema(datatype))[0]
         elif isinstance(datatype, list) and isinstance(datatype[1], dict):
-            logical_type = datatype[1].get('logicalType', None)
-            if logical_type:
+            if logical_type := datatype[1].get('logicalType', None):
                 if logical_type.find('-') > -1:
                     logical_prefix, precision = logical_type.split('-')
                 else:

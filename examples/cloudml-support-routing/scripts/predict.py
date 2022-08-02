@@ -68,12 +68,9 @@ def main():
   # output URI is the full path of the project to write predictions to.
   # See https://cloud.google.com/automl-tables/docs/predict-batch for details.
   batch_prediction_operation = automl_client.batch_predict(
-      bigquery_input_uri='bq://{}.{}.{}'.format(
-          global_config['destination_project_id'],
-          global_config['destination_dataset'],
-          global_config['features_predict_table']),
-      bigquery_output_uri='bq://{}'.format(
-          global_config['destination_project_id']),
+      bigquery_input_uri=
+      f"bq://{global_config['destination_project_id']}.{global_config['destination_dataset']}.{global_config['features_predict_table']}",
+      bigquery_output_uri=f"bq://{global_config['destination_project_id']}",
       model_display_name=global_config['model_display_name'],
   )
   batch_prediction_operation.result()
@@ -91,26 +88,22 @@ def main():
       .output_info
       .bigquery_output_dataset
   ).split('bq://')[-1]
-  predictions_table = bq_client.get_table(automl_dataset_id + '.predictions')
-  failed_predictions_table = bq_client.get_table(automl_dataset_id + '.errors')
+  predictions_table = bq_client.get_table(f'{automl_dataset_id}.predictions')
+  failed_predictions_table = bq_client.get_table(f'{automl_dataset_id}.errors')
 
   # Copy predictions to dataset, fails if table already exists.
   bq_client.copy_table(
       sources=predictions_table,
-      destination='{}.{}.{}'.format(
-          global_config['destination_project_id'],
-          global_config['destination_dataset'],
-          global_config['predictions_table']),
+      destination=
+      f"{global_config['destination_project_id']}.{global_config['destination_dataset']}.{global_config['predictions_table']}",
   ).result()
 
   # Copy the failed predictions table only if it is not empty.
   if failed_predictions_table.num_rows > 0:
     bq_client.copy_table(
         sources=failed_predictions_table,
-        destination='{}.{}.{}'.format(
-            global_config['destination_project_id'],
-            global_config['destination_dataset'],
-            global_config['failed_predictions_table']),
+        destination=
+        f"{global_config['destination_project_id']}.{global_config['destination_dataset']}.{global_config['failed_predictions_table']}",
     ).result()
     logging.warning("%d rows in the batch prediction job failed.",
                     failed_predictions_table.num_rows)

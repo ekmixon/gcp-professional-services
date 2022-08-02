@@ -56,8 +56,8 @@ class QuboProblem(object):
         Args:
             sat: an instance of SAT problem
         """
-        v = set([abs(el) for c in sat.clauses for el in c])
-        self.var_names = ['X%s' % i for i in range(max(list(v)))]
+        v = {abs(el) for c in sat.clauses for el in c}
+        self.var_names = [f'X{i}' for i in range(max(list(v)))]
         self.qclauses = []
         for c in sat.clauses:
             self.qclauses += open_brackets(c)
@@ -110,17 +110,14 @@ class QuboProblem(object):
                 var1_ind = c.vars_ind[0]
                 var2_ind = c.vars_ind[1]
                 self._replace_var(var1_ind, var2_ind, anc_var_ind)
-                self.var_names.append('X_%s_%s' % (var1_ind, var2_ind))
+                self.var_names.append(f'X_{var1_ind}_{var2_ind}')
                 self.penalties.append(Penalty(var1_ind, var2_ind, anc_var_ind))
 
     def to_qwave_format(self):
         """Transform a problem to QWave format."""
-        lines = []
         onsite_fields, interactions = self.get_qaoa()
-        lines.append('c  This is a sample .qubo file\n')
-        lines2 = []
         nodes = 0
-        lines2.append('c ------------------\n')
+        lines2 = ['c ------------------\n']
         for i, c in enumerate(onsite_fields):
             if abs(c) > 0:
                 lines2.append('%s  %s   %s\n' % (i, i, c))
@@ -132,10 +129,14 @@ class QuboProblem(object):
                 if abs(c) > 0.:
                     lines2.append('%s  %s   %s\n' % (i, j, c))
                     n_couplers += 1
-        lines.append('p   qubo  0   %s   %s   %s\n' % (
-            len(self.var_names),
-            nodes,
-            n_couplers))
+        lines = [
+            'c  This is a sample .qubo file\n',
+            (
+                'p   qubo  0   %s   %s   %s\n'
+                % (len(self.var_names), nodes, n_couplers)
+            ),
+        ]
+
         return lines + lines2
 
     def get_qaoa(self):

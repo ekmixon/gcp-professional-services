@@ -118,7 +118,7 @@ def train_model(
   # Also provide the metrics artifact URI for the metrics output
   fields = [field.split(':')[0] for field in input_data_schema.split(';')]
   label = fields[-1]
-  features = ','.join(fields[0:-1])
+  features = ','.join(fields[:-1])
 
   # It is possible to make all train_args passed using `train_additional_args`
   # The below is an example to show different usage
@@ -138,7 +138,7 @@ def train_model(
     logging.info(f'The additional args {train_additional_args}')
     arg_dict = json.loads(train_additional_args)
     for item in arg_dict:
-      train_args.append('--' + item)
+      train_args.append(f'--{item}')
       train_args.append(arg_dict[item])
 
   if hptune_region:
@@ -159,7 +159,7 @@ def train_model(
       f'Resource Name: {model.resource_name}')
 
   logging.info('Update output model metadata')
-  output_model.uri = 'aiplatform://v1/' + model.resource_name
+  output_model.uri = f'aiplatform://v1/{model.resource_name}'
   output_model.metadata['model_gcs_uri'] = model.uri
 
   feature_importance_dataset.uri = os.path.join(

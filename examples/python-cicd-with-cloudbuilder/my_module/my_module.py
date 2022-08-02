@@ -24,7 +24,7 @@ Tutorial found in README.md.
 import numpy as np
 
 def is_numeric(x):
-  return True if type(x) in [int, float] else False
+  return type(x) in [int, float]
 
 
 def add(a, b):
@@ -39,8 +39,8 @@ def add(a, b):
   """
   for var in [a,b]:
     if not is_numeric(var):
-      raise TypeError("Inputs a and b must be an int or float, "
-                       "but {} was passed".format(var))
+      raise TypeError(
+          f"Inputs a and b must be an int or float, but {var} was passed")
   return a + b
 
 
@@ -55,8 +55,7 @@ def square(x):
   """
 
   if not is_numeric(x):
-    raise TypeError("Input x must be an int or float, "
-                     "but {} was passed".format(x))
+    raise TypeError(f"Input x must be an int or float, but {x} was passed")
 
   return x ** 2
 
@@ -81,12 +80,10 @@ def log_transform(x, const=1):
     ValueError: Raises a value error if const <= 0.
   """
   if const <= 0:
-    raise ArithmeticError("Constant const must be greater than 0, not {}"
-                     .format(const))
+    raise ArithmeticError(f"Constant const must be greater than 0, not {const}")
 
   if not is_numeric(x):
-    raise TypeError("Input x must be an int or float, "
-                     "but {} was passed".format(x))
+    raise TypeError(f"Input x must be an int or float, but {x} was passed")
 
   return np.log(x + const)
 
@@ -96,9 +93,9 @@ def main():  # pragma: no cover
   a = 5
   b = 10
   total = add(a, b)
-  print("The sum of {} and {} is {}.".format(a, b, total))
-  print("The square of {} is {}.".format(3, square(3)))
-  print("The ln of 10 is {}.".format(log_transform(10)))
+  print(f"The sum of {a} and {b} is {total}.")
+  print(f"The square of 3 is {square(3)}.")
+  print(f"The ln of 10 is {log_transform(10)}.")
 
 if __name__ == "__main__":  # pragma: no cover
   main()

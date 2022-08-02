@@ -93,7 +93,7 @@ def _build_deidentify_config(info_type_list):
     config = copy.deepcopy(transformation_config)
     config['info_types'].append({'name': info_type})
     replace_config = config['primitive_transformation']['replace_config']
-    replace_config['new_value']['string_value'] = '[%s]' % info_type
+    replace_config['new_value']['string_value'] = f'[{info_type}]'
     deidentify_config['info_type_transformations']['transformations'].append(
         config)
   return deidentify_config
@@ -149,7 +149,8 @@ def _post_scrubbed_message_callback(message_future):
   """
 
   if message_future.exception(timeout=30):
-    logging.info('Publishing message on {} threw an Exception {}.'.format(
-        _OUTPUT_TOPIC_NAME, message_future.exception()))
+    logging.info(
+        f'Publishing message on {_OUTPUT_TOPIC_NAME} threw an Exception {message_future.exception()}.'
+    )
   else:
-    logging.info("Posted message id:" + message_future.result())
+    logging.info(f"Posted message id:{message_future.result()}")

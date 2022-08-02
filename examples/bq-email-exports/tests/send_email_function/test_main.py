@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Unit tests for send email function"""
+
 import os
 import sys
 
 import pytest
 
-sys.path.append(os.path.realpath(os.path.dirname(__file__) + "../.."))
+sys.path.append(os.path.realpath(f"{os.path.dirname(__file__)}../.."))
 from send_email_function import main
 
 

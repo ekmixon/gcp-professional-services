@@ -81,18 +81,21 @@ def run(argv=None):
     # When generating a dimension table we get the distinct keys as a side
     # input from the main table so we generate dimension records that join to
     # the main data table.
-    key_set = \
-        (p
-         | 'Query Keys from main table' >> beam.io.Read(
-            beam.io.BigQuerySource(
-                query="SELECT DISTINCT({}) FROM `{}`".format(
-                    data_args.source_joining_key_col,
-                    data_args.fact_table),
-                use_standard_sql=True)
+    key_set = (
+        p
+        | (
+            'Query Keys from main table'
+            >> beam.io.Read(
+                beam.io.BigQuerySource(
+                    query=f"SELECT DISTINCT({data_args.source_joining_key_col}) FROM `{data_args.fact_table}`",
+                    use_standard_sql=True,
+                )
             )
-         | 'Extract key values' >> beam.Map(
-                lambda x: (x[data_args.source_joining_key_col]))
         )
+    ) | 'Extract key values' >> beam.Map(
+        lambda x: (x[data_args.source_joining_key_col])
+    )
+
 
     rows = (
         p
@@ -112,8 +115,7 @@ def run(argv=None):
 
     if data_args.primary_key_cols:
         for key in data_args.primary_key_cols.split(','):
-            rows |= 'Enforcing primary key: {}'.format(
-                key) >> EnforcePrimaryKeys(key)
+            rows |= (f'Enforcing primary key: {key}' >> EnforcePrimaryKeys(key))
 
     if data_args.csv_schema_order:
         (rows

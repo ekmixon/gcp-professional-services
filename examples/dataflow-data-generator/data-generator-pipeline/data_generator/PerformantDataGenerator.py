@@ -247,7 +247,7 @@ class DataGenerator(object):
         }
 
         faker_schema = {}
-        this_call_schema = fields if fields else self.schema['fields']
+        this_call_schema = fields or self.schema['fields']
         for obj in this_call_schema:
             is_special = False
             if obj['type'].lower() == 'record':
@@ -258,12 +258,12 @@ class DataGenerator(object):
                 for key in special_map:
                     if key.lower() in obj['name'].lower():
                         faker_schema[obj['name']] = \
-                                special_map[key]
+                                    special_map[key]
                         is_special = True
                         break
                 if not is_special:
                     faker_schema[obj['name']] = \
-                            type_map[obj['type']]
+                                type_map[obj['type']]
         return faker_schema
 
     def enforce_joinable_keys(self, record, key_set=None):
@@ -304,7 +304,7 @@ class FakeRowGen(beam.DoFn):
     # checking type and mode.
 
     def get_field_dict(self, field_name, fields=None):
-        this_call_schema = fields if fields else self.data_gen.schema['fields']
+        this_call_schema = fields or self.data_gen.schema['fields']
         return [f for f in this_call_schema if f['name'] == field_name][0]
 
     def get_percent_between_min_and_max_date(self, date_string):
@@ -357,7 +357,7 @@ class FakeRowGen(beam.DoFn):
             # We will fill each array of struct with 0-3 elements.
             array_of_struct = []
             record[fieldname] = []
-            for i in range(random.randint(0, 3)):
+            for _ in range(random.randint(0, 3)):
                 nested_record = {}
                 for col in field['fields']:
                     # Recursively sanity check the next level.
@@ -374,15 +374,16 @@ class FakeRowGen(beam.DoFn):
             # If the description of the field is a RDMS schema like VARCHAR(255)
             # then we extract this number and generate a string of this length.
             if field.get('description'):
-                extracted_numbers = re.findall('\d+', field['description'])
-                if extracted_numbers:
+                if extracted_numbers := re.findall('\d+', field['description']):
                     STRING_LENGTH = int(extracted_numbers[0])
 
             char_idxs = np.random.randint(0,
                                           len(string.ascii_letters),
                                           size=STRING_LENGTH)
-            record[fieldname] = str(''.join(string.ascii_letters[i]
-                                            for i in char_idxs))
+            record[fieldname] = ''.join(
+                (string.ascii_letters[i] for i in char_idxs)
+            )
+
 
         elif field['type'] == 'TIMESTAMP':
             pct = random_number / float(sys.maxsize)
@@ -392,7 +393,7 @@ class FakeRowGen(beam.DoFn):
             delta = pct * max_delta.total_seconds()
 
             record[fieldname] = self.data_gen.min_date \
-                                + datetime.timedelta(seconds=delta)
+                                    + datetime.timedelta(seconds=delta)
             record[fieldname] = str(
                 record[fieldname].strftime('%Y-%m-%dT%H:%M:%S'))
 
@@ -424,8 +425,8 @@ class FakeRowGen(beam.DoFn):
             record[fieldname] = int(max_size * (random_number / sys.maxsize))
 
             if '_max_' in field['name'].lower():
-                max_size = int(fieldname[fieldname.find("_max_") +
-                                         5:len(fieldname)])
+                max_size = int(fieldname[fieldname.find("_max_") + 5 :])
+
             # This implements max and sign constraints
             # and avoids regenerating a random integer if already obeys min/max
             # integer.
@@ -433,13 +434,13 @@ class FakeRowGen(beam.DoFn):
             if self.data_gen.only_pos:
                 record[fieldname] = abs(record[fieldname])
 
-        elif field['type'] == 'FLOAT' or field['type'] == 'NUMERIC':
+        elif field['type'] in ['FLOAT', 'NUMERIC']:
             min_size = float(self.data_gen.min_float)
             max_size = float(self.data_gen.max_float)
 
             if '_max_' in field['name'].lower():
-                max_size = float(fieldname[fieldname.find("_max_") +
-                                           5:len(fieldname)])
+                max_size = float(fieldname[fieldname.find("_max_") + 5 :])
+
             record[fieldname] = max_size * random_number / float(sys.maxsize)
 
             record[fieldname] = round(float(record[fieldname]),
@@ -512,9 +513,7 @@ class FakeRowGen(beam.DoFn):
         and converting it back to a datatype that matches the schema.
         """
         for key in keys:
-            if key == 'frequency':
-                pass
-            else:
+            if key != 'frequency':
                 field_dict = self.get_field_dict(key)
                 datatype = field_dict['type']
                 if datatype == 'STRING':
@@ -523,7 +522,6 @@ class FakeRowGen(beam.DoFn):
                     pass
                 elif datatype == 'BYTES':
                     keys[key] = bytes(keys[key])
-                #TODO add other datatypes as needed by your usecase.
         return keys
 
     def generate_fake(self, fschema, key_dict=None):
@@ -547,13 +545,9 @@ class FakeRowGen(beam.DoFn):
         # deterministic actions.
         random_numbers = np.random.randint(0, sys.maxsize, size=len(fschema))
 
-        # Generate a fake record.
-        col_idx = 0
         data = {}
-        for col_name in list(fschema.keys()):
+        for col_idx, col_name in enumerate(list(fschema.keys())):
             data = self.sanity_check(data, col_name, random_numbers[col_idx])
-            col_idx += 1
-
         if key_dict:
             keys = self.convert_key_types(key_dict)
             # Join the keys and the rest of the genreated data
@@ -576,14 +570,11 @@ class FakeRowGen(beam.DoFn):
             # of the histogram table.
             frequency = int(element.get('frequency'))
 
-            for i in range(frequency):
-                row = self.generate_fake(fschema=faker_schema,
-                                         key_dict=element)
-                yield row
+            for _ in range(frequency):
+                yield self.generate_fake(fschema=faker_schema, key_dict=element)
+
         except AttributeError:
-            # The contents of this element are ignored if they are a string.
-            row = self.generate_fake(fschema=faker_schema, key_dict=element)
-            yield row
+            yield self.generate_fake(fschema=faker_schema, key_dict=element)
 
 
 def parse_data_generator_args(argv):
@@ -807,13 +798,7 @@ def fetch_schema(data_args, schema_inferred):
         from input_bq_table.
     """
     if not data_args.schema_file:
-        if not data_args.input_bq_table:
-            # Both schema and input_bq_table are unset.
-            # Use gcs schema file because safer than assuming this user has
-            # created the lineorders table.
-            data_args.schema_file = \
-                'gs://python-dataflow-example/schemas/lineorder-schema.json'
-        else:
+        if data_args.input_bq_table:
             # Need to fetch schema from existing BQ table.
             bq_cli = bq.Client()
             dataset_name, table_name = data_args.input_bq_table.split('.', 1)
@@ -843,6 +828,12 @@ def fetch_schema(data_args, schema_inferred):
                 except NotFound:
                     schema_inferred = False
 
+        else:
+            # Both schema and input_bq_table are unset.
+            # Use gcs schema file because safer than assuming this user has
+            # created the lineorders table.
+            data_args.schema_file = \
+                'gs://python-dataflow-example/schemas/lineorder-schema.json'
     if data_args.schema_file and data_args.input_bq_table:
         logging.error('Error: pipeline was passed both schema_file and '
                       'input_bq_table. '

@@ -124,11 +124,11 @@ def parse_gsutil_long_output_file(filename):
 
     df['batch_num'] = df['cum_sum_bytes'] // MAX_BATCH_BYTES
 
-    batches = []
     total_batches = int(df['batch_num'].max() + 1)
-    for i in range(total_batches):
-        batches.append(list(df[df['batch_num'] == i]['filename']))
-    return batches
+    return [
+        list(df[df['batch_num'] == i]['filename'])
+        for i in range(total_batches)
+    ]
 
 
 def submit_jobs(bq_cli, job_config, dataset_id, table_id, batches):
@@ -149,7 +149,7 @@ def submit_jobs(bq_cli, job_config, dataset_id, table_id, batches):
     dataset = bq_cli.dataset(dataset_id)
     table_ref = dataset.table(table_id)
     for (i, batch) in enumerate(batches):
-        print(('running load job {} of {}.'.format(i, len(batches))))
+        print(f'running load job {i} of {len(batches)}.')
         # API call.
         bq_cli.load_table_from_uri(source_uris=batch,
                                    destination=table_ref,

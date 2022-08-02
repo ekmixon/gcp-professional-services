@@ -94,7 +94,7 @@ def compute_and_print_pr_auc(labels, probabilities, output_path=None):
     full_path_log = os.path.join(output_path, 'pr_auc.txt')
     with open(full_path_log, 'w+') as f:
       f.write('Precision-Recall AUC: {0:0.2f}\n'.format(average_precision))
-      f.write('Precision-Recall curve exported to: {}'.format(full_path_jpg))
+      f.write(f'Precision-Recall curve exported to: {full_path_jpg}')
 
 
 def run(labels_path, predictions_path, output_path):

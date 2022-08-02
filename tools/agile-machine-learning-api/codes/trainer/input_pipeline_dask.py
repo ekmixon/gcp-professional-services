@@ -110,11 +110,7 @@ class InputReader(object):
         else:
             csv_path = self.csv_path
 
-        if self.column_names:
-            header = None
-        else:
-            header = 'infer'
-
+        header = None if self.column_names else 'infer'
         try:
             df = dd.read_csv(
                 csv_path,
@@ -292,15 +288,14 @@ class BasicStats(object):
         mean, median, mode, std_dev = self.calculate_stats(df, target_var)
         df = self.dropping_zero_var_cols(df, target_var, std_dev)
         df = self.impute(df, target_var, median, mode)
-        if task_type == 'classification':
-            if df[target_var].dtype == 'float64':
-                df[target_var] = df[target_var].astype(np.int64)
+        if task_type == 'classification' and df[target_var].dtype == 'float64':
+            df[target_var] = df[target_var].astype(np.int64)
         dtype_map = {'float64': 0., 'int64': 0, 'object': ''}
         dtype_list = [str(dtype) for dtype in df.dtypes]
         _csv_defaults = [[dtype_map[dtype]] for dtype in dtype_list]
         if name == 'train' and task_type == 'classification':
             self.creating_explainer_lime(df, target_var)
-        df.to_csv('/tmp/clean_*_' + str(name) + '.csv', index=False)
+        df.to_csv(f'/tmp/clean_*_{str(name)}.csv', index=False)
         return df, mean, std_dev, _csv_defaults
 
     def find_vocab(self, df):
@@ -321,10 +316,7 @@ class BasicStats(object):
             col for col in df.columns if df[col].dtype != 'object']
         temp = dask.compute([df[col].drop_duplicates() for col in cat_columns])
 
-        column_mapping = dict()
-
-        for col in continuous_cols:
-            column_mapping[col] = 0
+        column_mapping = {col: 0 for col in continuous_cols}
 
         for index, col in enumerate(cat_columns):
             column_mapping[col] = np.array(temp[0][index])
@@ -343,13 +335,17 @@ class BasicStats(object):
         pandas_df = df.compute()
         class_names = list(pandas_df[target_var].unique())
         pandas_df = pandas_df.drop(target_var, axis=1)
-        dict_mapping = dict()
+        dict_mapping = {}
 
         categorical_columns = [
             col for col in pandas_df.columns if pandas_df[col].dtype == 'object']
 
-        categorical_columns_index = [index for index in range(0, len(
-            pandas_df.columns)) if pandas_df[pandas_df.columns[index]].dtype == 'object']
+        categorical_columns_index = [
+            index
+            for index in range(len(pandas_df.columns))
+            if pandas_df[pandas_df.columns[index]].dtype == 'object'
+        ]
+
 
         for col in categorical_columns:
             pandas_df[col] = pd.Categorical(
@@ -358,10 +354,11 @@ class BasicStats(object):
             pandas_df[col] = pandas_df[col].cat.codes
 
         feature_names = list(pandas_df.columns)
-        dict_of_feature_names = dict()
-        for col_index in categorical_columns_index:
-            dict_of_feature_names[col_index] = dict_mapping[feature_names[col_index]].values(
-            )
+        dict_of_feature_names = {
+            col_index: dict_mapping[feature_names[col_index]].values()
+            for col_index in categorical_columns_index
+        }
+
         explainer = lime.lime_tabular.LimeTabularExplainer(
             np.array(pandas_df),
             feature_names=feature_names,
@@ -437,7 +434,7 @@ class DatasetInput(object):
         Returns :
             pattern : string, globpath of the cleaned data
         """
-        pattern = '/tmp/clean_*_{}*'.format(name)
+        pattern = f'/tmp/clean_*_{name}*'
         if csv_path is not None:
             pattern = csv_path
         return pattern

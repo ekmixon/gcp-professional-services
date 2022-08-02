@@ -188,12 +188,11 @@ class CloudSqlInstance(object):
     @property
     def count(self):
         count = 0
-        if self.availability == "REGIONAL":
-            count = int(REGIONAL_INCREMENT)
-        else:
-            count = int(ZONAL_INCREMENT)
-
-        count = count + len(self.replicas)
+        count = (
+            int(REGIONAL_INCREMENT)
+            if self.availability == "REGIONAL"
+            else int(ZONAL_INCREMENT)
+        ) + len(self.replicas)
 
         return count
 
@@ -209,22 +208,19 @@ class CloudSqlInstance(object):
             )
         )
 
-        series = dict(
-            metric=dict(
-                type='custom.googleapis.com/cloudsql_private_ip_count'),
+        return dict(
+            metric=dict(type='custom.googleapis.com/cloudsql_private_ip_count'),
             resource=dict(
                 type='generic_node',
                 labels=dict(
                     location=self.region,
                     node_id=self.name,
                     project_id=self.project_id,
-                    namespace=self.private_network
-                )
+                    namespace=self.private_network,
+                ),
             ),
-            points=[point]
+            points=[point],
         )
-
-        return series
 
 
 @logged
@@ -256,8 +252,7 @@ def get_cloudsql_instance(project, instance):
     request = cloudsql_service().instances().get(project=project,
                                                  instance=instance)
     response = request.execute()
-    parsed_response = parse_cloudsql_response(response)
-    return parsed_response
+    return parse_cloudsql_response(response)
 
 
 @logged
@@ -266,8 +261,7 @@ def get_cloudsql_instances(projects_to_search):
     instances = []
     for project, instance_list in projects_to_search.items():
         for instance in instance_list:
-            cloudsql_instance = get_cloudsql_instance(project, instance)
-            if cloudsql_instance:
+            if cloudsql_instance := get_cloudsql_instance(project, instance):
                 instances.append(cloudsql_instance)
 
     return instances
@@ -276,9 +270,7 @@ def get_cloudsql_instances(projects_to_search):
 @logged
 def get_projects_to_search(project_id, dataset_name, location, all):
     projects_to_search = {}
-    now = '*'
-    if not all:
-        now = datetime.utcnow().strftime("%Y%m%d")
+    now = '*' if all else datetime.utcnow().strftime("%Y%m%d")
     table_name = TABLE_NAME.format(now)
     table_id = TABLE_ID.format(project_id, dataset_name, table_name)
     created_query = CREATED_QUERY.format(table_id)
@@ -296,7 +288,7 @@ def get_projects_to_search(project_id, dataset_name, location, all):
 
 @logged
 def create_metric_descriptor(project_id):
-    project_name = 'projects/' + project_id
+    project_name = f'projects/{project_id}'
     descriptor = dict(
         type='custom.googleapis.com/cloudsql_private_ip_count',
         name='generic_node',
@@ -327,7 +319,7 @@ def log_result(instances):
 def post(project_id, timeseries):
 
     try:
-        project_name = 'projects/' + project_id
+        project_name = f'projects/{project_id}'
         request = monitoring_service().projects().timeSeries().create(
             name=project_name,
             body=dict(timeSeries=timeseries))

@@ -157,17 +157,19 @@ def scalar_extraction_query(inner_query):
     distribution_cols = ['distribution[OFFSET(' +
                          str(i) + ')] distribution' + str(i)
                          for i in range(constants.DISTRIBUTION_SIZE)]
-    weather_cols = ['weather[OFFSET(' + str(i) + ')] weather' + str(i)
-                    for i in range(constants.WEATHER_SIZE)]
+    weather_cols = [
+        f'weather[OFFSET({str(i)})] weather{str(i)}'
+        for i in range(constants.WEATHER_SIZE)
+    ]
+
 
     combined_cols = ', '.join(distribution_cols + weather_cols)
 
-    with_statement = 'WITH Feature_Temp AS (' + inner_query + ')'
-    select_statement = 'SELECT price, date_utc, day, hour, ' + combined_cols
+    with_statement = f'WITH Feature_Temp AS ({inner_query})'
+    select_statement = f'SELECT price, date_utc, day, hour, {combined_cols}'
     from_statement = 'FROM Feature_Temp'
 
-    query = ' '.join([with_statement, select_statement, from_statement])
-    return query
+    return ' '.join([with_statement, select_statement, from_statement])
 
 
 def create_table(

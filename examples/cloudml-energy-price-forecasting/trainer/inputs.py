@@ -48,7 +48,7 @@ def parse_csv(record):
     weather_defaults = [[0.0] for _ in range(constants.WEATHER_SIZE)]
     distribution_cols = ['distribution' +
                          str(i) for i in range(constants.DISTRIBUTION_SIZE)]
-    weather_cols = ['weather' + str(i) for i in range(constants.WEATHER_SIZE)]
+    weather_cols = [f'weather{str(i)}' for i in range(constants.WEATHER_SIZE)]
     header_def = [[0.0], [''], [0], [0]] + \
         distribution_defaults + weather_defaults
     column_names = [TARGET_COLUMN, 'date', 'day',

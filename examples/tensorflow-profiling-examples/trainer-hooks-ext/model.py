@@ -59,10 +59,7 @@ class LambdaTriggerTimer(_HookTimer):
     def should_trigger_for_step(self, step):
         if self._last_triggered_step == step:
             return False
-        if self.steps_lambda(step):
-            return True
-
-        return False
+        return bool(self.steps_lambda(step))
 
     def update_last_triggered_step(self, step):
         if self._last_triggered_step is None:

@@ -40,9 +40,7 @@ def get_model_path(cfg, job_id, trained_model_location):
     job_dir = trained_model_location.replace(cfg['bucket_name'] + '/', '')
     prefix_path = os.path.join(job_dir, job_id)
     blobs = bucket.list_blobs(prefix=prefix_path)
-    model_path = [b.name.replace(prefix_path, '')
-                  for b in blobs][1].replace('/', '')
-    return model_path
+    return [b.name.replace(prefix_path, '') for b in blobs][1].replace('/', '')
 
 
 def get_training_status(api, cfg, job_id, model_name):
@@ -59,10 +57,12 @@ def get_training_status(api, cfg, job_id, model_name):
         project_id : string, project id of the project
         model_id : string, model id of the project
     """
-    project_id = 'projects/{}'.format(cfg['project_id'])
-    model_id = '{}/models/{}'.format(project_id, model_name)
-    job_response = api.projects().jobs().get(
-        name='{}/jobs/{}'.format(project_id, job_id)).execute()
+    project_id = f"projects/{cfg['project_id']}"
+    model_id = f'{project_id}/models/{model_name}'
+    job_response = (
+        api.projects().jobs().get(name=f'{project_id}/jobs/{job_id}').execute()
+    )
+
     return job_response['state'], project_id, model_id
 
 
@@ -76,8 +76,7 @@ def get_models_deployed(api, project_id):
         list_of_models : list, List of the models deployed
     """
     model_response = api.projects().models().list(parent=project_id).execute()
-    list_of_models = [a['name'] for a in model_response['models']]
-    return list_of_models
+    return [a['name'] for a in model_response['models']]
 
 
 def post(
@@ -114,22 +113,27 @@ def post(
                 parent=project_id, body={'name': model_name})
             _ = create_model_request.execute()
 
-        version_response = api.projects().models(
-        ).versions().list(parent=model_id).execute()
-        if version_response:
+        if (
+            version_response := api.projects()
+            .models()
+            .versions()
+            .list(parent=model_id)
+            .execute()
+        ):
             list_of_versions = [b['name']
                                 for b in version_response['versions']]
-            version_id = '{}/versions/{}'.format(model_id, version_name)
+            version_id = f'{model_id}/versions/{version_name}'
             if version_id in list_of_versions:
                 raise AssertionError(
                     'Version already present. Please change the version')
         model_path = get_model_path(cfg, job_id, trained_model_location)
-        request_dict = {'name': version_name,
-                        'deploymentUri': '{}/{}/{}'.format(trained_model_location,
-                                                           job_id,
-                                                           model_path),
-                        'runtimeVersion': runtime_version,
-                        'framework': 'TENSORFLOW'}
+        request_dict = {
+            'name': version_name,
+            'deploymentUri': f'{trained_model_location}/{job_id}/{model_path}',
+            'runtimeVersion': runtime_version,
+            'framework': 'TENSORFLOW',
+        }
+
         request = api.projects().models().versions().create(
             parent=model_id, body=request_dict)
         output = request.execute()

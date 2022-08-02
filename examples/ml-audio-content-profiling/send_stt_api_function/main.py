@@ -58,11 +58,11 @@ def create_config_object(content_type: str) -> dict:
     try:
         if '/' in content_type:
             content_encoding_type = content_type.split('/')[1]
-            if content_encoding_type in encoding_mapping:
-                config_object['encoding'] = encoding_mapping[content_encoding_type]
-            else:
-                # pylint: disable=line-too-long
-                config_object['encoding'] = enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED
+            config_object['encoding'] = encoding_mapping.get(
+                content_encoding_type,
+                enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
+            )
+
         else:
             config_object['encoding'] = enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED
         return config_object

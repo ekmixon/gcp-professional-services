@@ -91,12 +91,11 @@ def invoke_sreverless_spark(event, context):
             "bqTable": f"{bq_table}",
             "deadLetterQueue": f"projects/{project_id}/topics/{error_topic}"
         }
-        publish_futures = []
         publish_future = publisher.publish(topic_path,
                                            json.dumps(dlq_data).encode("utf-8"),
                                            oid=gcs_message_json['id'])
         publish_future.add_done_callback(
             get_callback(publish_future, gcs_message))
-        publish_futures.append(publish_future)
+        publish_futures = [publish_future]
         futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
         logging.error('Job submission joiled')

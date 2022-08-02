@@ -89,9 +89,7 @@ def survival_likelihood_loss(y_true, y_pred, num_intervals):
     loss_survival = 1. + y_true[:, 0:num_intervals] * (y_pred - 1.)
     loss_death = 1. - y_true[:, num_intervals:2*num_intervals] * y_pred
     loss = tf.concat([loss_survival, loss_death], axis=-1)
-    log_loss = tf.reduce_mean(-tf.math.log(tf.clip_by_value(
-        loss, 1e-07, 1e32)))
-    return log_loss
+    return tf.reduce_mean(-tf.math.log(tf.clip_by_value(loss, 1e-07, 1e32)))
 
 
 def survival_model(features, labels, mode, params):

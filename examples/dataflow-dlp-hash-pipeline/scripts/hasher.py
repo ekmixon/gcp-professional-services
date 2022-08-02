@@ -88,7 +88,7 @@ class Hasher():
     db = firestore.Client()
     col = db.collection(self.opts.collection)
     key = self.get_hash_key()
-    if key == None:
+    if key is None:
       raise NotFound("Hash key does not exist yet. Please run `hasher.py create_key --secret $SECRET` first")
     if self.opts.command == "upload":
       print("Hashing and uploading SSNs...")

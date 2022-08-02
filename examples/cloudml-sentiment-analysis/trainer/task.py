@@ -75,9 +75,10 @@ def get_feature_columns(num_hash_buckets, embedding_dimension):
 
   id_col = feature_column.sequence_categorical_column_with_hash_bucket(
       constants.TOKENS, num_hash_buckets, dtype=tf.string)
-  features_columns = [tf.feature_column.embedding_column(
-      id_col, dimension=embedding_dimension)]
-  return features_columns
+  return [
+      tf.feature_column.embedding_column(
+          id_col, dimension=embedding_dimension)
+  ]
 
 
 def append_gcp_trial_id(path):
@@ -92,9 +93,8 @@ def append_gcp_trial_id(path):
     `str` with updated path.
   """
 
-  trial_id = json.loads(
-      os.environ.get('TF_CONFIG', '{}')).get('task', {}).get('trial', '')
-  if trial_id:
+  if (trial_id := json.loads(os.environ.get('TF_CONFIG', '{}')).get(
+      'task', {}).get('trial', '')):
     return os.path.join(path, trial_id)
   return path
 

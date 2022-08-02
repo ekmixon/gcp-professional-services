@@ -34,7 +34,9 @@ def run():
 
   # Read and parse side inputs.
   abbreviations_dict = read_abbreviations_local('resources/abbreviations.txt')
-  logging.info("Read abbreviations dataset. Number of elements: {}".format(len(abbreviations_dict)))
+  logging.info(
+      f"Read abbreviations dataset. Number of elements: {len(abbreviations_dict)}"
+  )
 
   with beam.Pipeline(options=pipeline_options) as p:
     # ETL: Extract.

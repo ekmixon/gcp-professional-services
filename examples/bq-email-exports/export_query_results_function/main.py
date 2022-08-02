@@ -33,8 +33,7 @@ def main(event, context):
 
     data = base64.b64decode(event['data'])
     upstream_bq_dts_obj = json.loads(data)
-    error = upstream_bq_dts_obj.get('errorStatus')
-    if error:
+    if error := upstream_bq_dts_obj.get('errorStatus'):
         logging.error(
             RuntimeError(f"Error in upstream query job: {error['message']}."))
     else:

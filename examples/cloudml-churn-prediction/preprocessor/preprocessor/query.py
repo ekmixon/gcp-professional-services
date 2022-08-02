@@ -26,11 +26,7 @@ def get_query(table, limit=None):
 
     fields = ',\n    '.join(features.BQ_FEATURES)
 
-    if limit and limit >= 0:
-        limit_clause = 'LIMIT {}'.format(limit)
-    else:
-        limit_clause = ''
-
+    limit_clause = f'LIMIT {limit}' if limit and limit >= 0 else ''
     return """
     SELECT
         {fields}

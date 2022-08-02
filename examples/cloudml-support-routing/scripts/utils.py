@@ -36,19 +36,15 @@ def merge_dicts(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
   """Return the union of two dicts, raise an error if keys are non-unique."""
   # Resolve None types.
   if a is None:
-    if b is None:
-      return {}
-    return b
+    return {} if b is None else b
   if b is None:
     return a
 
-  duplicate_keys = set(a.keys()).intersection(set(b.keys()))
-  if duplicate_keys:
+  if duplicate_keys := set(a.keys()).intersection(set(b.keys())):
     duplicate_keys_string = ", ".join(duplicate_keys)
-    raise KeyError("The following keys are non-unique: {}".format(
-        duplicate_keys_string))
+    raise KeyError(f"The following keys are non-unique: {duplicate_keys_string}")
 
-  return {**a, **b}
+  return a | b
 
 
 def read_config(config_path: str,
@@ -79,11 +75,11 @@ def read_config(config_path: str,
   # Merge all specified subconfigs into a single config.
   merged_config = {}
   for subconfig_key in subconfig_keys:
-    subconfig = config.get(subconfig_key)
-    if not subconfig:
-      raise KeyError('Key "{}" does not exist.'.format(subconfig_key))
-    merged_config = merge_dicts(merged_config, subconfig)
+    if subconfig := config.get(subconfig_key):
+      merged_config = merge_dicts(merged_config, subconfig)
 
+    else:
+      raise KeyError(f'Key "{subconfig_key}" does not exist.')
   return merged_config
 
 
@@ -100,12 +96,9 @@ def create_dataset(destination_project: str, destination_dataset: str) -> str:
 
   # Create dataset in Bigquery.
   client = bigquery.Client()
-  dataset_id = '{}.{}'.format(destination_project,
-                              destination_dataset)
+  dataset_id = f'{destination_project}.{destination_dataset}'
   dataset_ref = bigquery.Dataset(dataset_id)
-  result = client.create_dataset(dataset_ref)
-
-  return result
+  return client.create_dataset(dataset_ref)
 
 
 def create_table(
@@ -149,7 +142,7 @@ def create_table(
 
   # Separate the positional and keyword params
   query_list_params = []
-  for key in query_params.keys():
+  for key in query_params:
     if isinstance(query_params[key], list):
       query_list_params.extend(query_params[key])
 
@@ -158,9 +151,7 @@ def create_table(
 
   # Create table in Bigquery.
   client = bigquery.Client()
-  table_id = '{}.{}.{}'.format(destination_project,
-                               destination_dataset,
-                               destination_table)
+  table_id = f'{destination_project}.{destination_dataset}.{destination_table}'
   table_ref = bigquery.Table(table_id)
   job_config = bigquery.QueryJobConfig()
   job_config.destination = table_ref

@@ -38,8 +38,8 @@ def get_projects(billing_account):
   """
 
   service = build('cloudbilling', 'v1')
-  request = service.billingAccounts().projects().list(
-      name='billingAccounts/%s' % billing_account)
+  request = (service.billingAccounts().projects().list(
+      name=f'billingAccounts/{billing_account}'))
   try:
     response = request.execute()
     return [
@@ -66,11 +66,11 @@ def create_custom_metrics(project):
     """
 
     # All custom metrics start with a known prefix.
-    request = service.projects().metricDescriptors().list(
-        name='projects/%s' % project,
+    request = (service.projects().metricDescriptors().list(
+        name=f'projects/{project}',
         filter='metric.type = starts_with("%s")' %
         constants.CUSTOM_METRICS_PREFIX,
-    )
+    ))
 
     try:
       response = request.execute()
@@ -99,16 +99,16 @@ def create_custom_metrics(project):
       custom_metric: Metric to create. e.g: custom.googleapis.com/someMetric.
     """
 
-    request = service.projects().metricDescriptors().create(
-        name='projects/%s' % project,
+    request = (service.projects().metricDescriptors().create(
+        name=f'projects/{project}',
         body={
-            'type':
-                custom_metric,
+            'type': custom_metric,
             'metricKind':
-                constants.CUSTOM_METRICS_MAP[custom_metric]['metricKind'],
+            constants.CUSTOM_METRICS_MAP[custom_metric]['metricKind'],
             'valueType':
-                constants.CUSTOM_METRICS_MAP[custom_metric]['valueType']
-        })
+            constants.CUSTOM_METRICS_MAP[custom_metric]['valueType'],
+        },
+    ))
 
     try:
       request.execute()
@@ -179,11 +179,12 @@ def copy_metrics(src_project, dst_project, utc_now):
     logging.info('Getting time series: metric=%s, startTime=%s, endTime=%s',
                  metric, start_time, end_time)
 
-    request = service.projects().timeSeries().list(
-        name='projects/%s' % src_project,
+    request = (service.projects().timeSeries().list(
+        name=f'projects/{src_project}',
         interval_startTime=start_time,
         interval_endTime=end_time,
-        filter='metric.type = "%s"' % metric)
+        filter='metric.type = "%s"' % metric,
+    ))
 
     try:
       response = request.execute()
@@ -230,8 +231,8 @@ def copy_metrics(src_project, dst_project, utc_now):
 
       try:
         body['timeSeries'][0]['points'] = [point]
-        request = service.projects().timeSeries().create(
-            name='projects/%s' % dst_project, body=body)
+        request = (service.projects().timeSeries().create(
+            name=f'projects/{dst_project}', body=body))
 
         request.execute()
       except HttpError as error:

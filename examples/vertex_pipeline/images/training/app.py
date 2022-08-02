@@ -193,15 +193,15 @@ def lgb_training(lgb_train: lgb.Dataset,
   }
 
   eval_results = {}  # to record eval results
-  model = lgb.train(params=params,
-                    num_boost_round=num_boost_round,
-                    train_set=lgb_train,
-                    valid_sets=[lgb_val, lgb_train],
-                    valid_names=['test', 'train'],
-                    evals_result=eval_results,
-                    verbose_eval=True)
-
-  return model
+  return lgb.train(
+      params=params,
+      num_boost_round=num_boost_round,
+      train_set=lgb_train,
+      valid_sets=[lgb_val, lgb_train],
+      valid_names=['test', 'train'],
+      evals_result=eval_results,
+      verbose_eval=True,
+  )
 
 
 ################################################################################
@@ -213,13 +213,10 @@ def _get_trial_parameters(trial: aip.Trial,
                           ) -> Dict[str, int]:
   """Extract vizier trial id."""
   target_params = set(target_parameters)
-  param_values = {}
-
-  for param in trial.parameters:
-    if param.parameter_id in target_params:
-      param_values[param.parameter_id] = int(param.value)
-
-  return param_values
+  return {
+      param.parameter_id: int(param.value)
+      for param in trial.parameters if param.parameter_id in target_params
+  }
 
 
 def _create_lgb_study(vizier_client: aip.VizierServiceClient,
@@ -228,11 +225,8 @@ def _create_lgb_study(vizier_client: aip.VizierServiceClient,
                       goal: str = 'MAXIMIZE') -> aip.Study:
   """Creat a vizier study."""
   # pylint: disable=consider-using-f-string
-  study_display_name = '{}_study_{}'.format(
-      args.hp_config_gcp_project_id.replace('-', ''),
-      datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
-  parent = 'projects/{}/locations/{}'.format(args.hp_config_gcp_project_id,
-                                             args.hp_config_gcp_region)
+  study_display_name = f"{args.hp_config_gcp_project_id.replace('-', '')}_study_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+  parent = f'projects/{args.hp_config_gcp_project_id}/locations/{args.hp_config_gcp_region}'
 
   param_num_leaves = {
       'parameter_id': 'num_leaves',
@@ -301,7 +295,7 @@ def conduct_vizier_trials(
   max_trial_id_to_stop = int(args.hp_config_max_trials)
 
   trial_id = 0
-  while int(trial_id) < max_trial_id_to_stop:
+  while trial_id < max_trial_id_to_stop:
     suggest_response = vizier_client.suggest_trials(
         {
             'parent': vizier_study_id,
@@ -352,12 +346,8 @@ def conduct_vizier_trials(
   optimal_trials = vizier_client.list_optimal_trials(
       {'parent': vizier_study_id})
 
-  # Extract best hyperparams from best trial
-  best_param_values = _get_trial_parameters(
-      optimal_trials.optimal_trials[0],
-      target_parameters=target_parameters)
-
-  return best_param_values
+  return _get_trial_parameters(
+      optimal_trials.optimal_trials[0], target_parameters=target_parameters)
 
 
 ################################################################################

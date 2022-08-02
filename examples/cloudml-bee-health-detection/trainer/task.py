@@ -121,9 +121,10 @@ def _initialise_params():
     args_parser.add_argument(
         '--tf_hub_module',
         help='TF Hub module to use for images.',
-        default=TF_HUB_IMAGENET + 'mobilenet_v1_025_224/feature_vector/1',
-        type=str
+        default=f'{TF_HUB_IMAGENET}mobilenet_v1_025_224/feature_vector/1',
+        type=str,
     )
+
     return args_parser.parse_args()
 
 

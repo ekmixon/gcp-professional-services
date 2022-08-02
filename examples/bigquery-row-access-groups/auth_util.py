@@ -46,10 +46,5 @@ def get_credentials(admin_email, scopes):
   #  object and the default credentials token from the VM.
   base_credential = oauth2client.service_account.ServiceAccountCredentials(
       default_credentials.service_account_email, signer, scopes=scopes)
-  #  This creates a delegated credential, which is needed to invoke GSuite
-  #  admin APIs. Delegating a credential means generating a signed OAuth
-  #  request, which is why it was necessary to create the Signer object,
-  #  since the default GCE credentials do not include a private key.
-  delegated_credential = base_credential.create_delegated(admin_email)
-  return delegated_credential
+  return base_credential.create_delegated(admin_email)
 

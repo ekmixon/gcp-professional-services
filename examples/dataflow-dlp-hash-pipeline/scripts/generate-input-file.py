@@ -61,7 +61,7 @@ class TestGen():
   def run(self, num_lines):
     funcs = [self.valid_ssn_line, self.valid_ssn_with_fake, self.invalid_with_fake_ssn, self.invalid_no_num]
     outlines = []
-    for _ in range(0, int(num_lines)):
+    for _ in range(int(num_lines)):
       func = random.choice(funcs)
       outlines.append(func())
     for k in sorted(self.stats.keys(), reverse=True):

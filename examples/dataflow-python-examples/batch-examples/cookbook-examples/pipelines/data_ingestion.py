@@ -54,10 +54,12 @@ class DataIngestion:
         # Strip out carriage return, newline and quote characters.
         values = re.split(",", re.sub('\r\n', '', re.sub('"', '',
                                                          string_input)))
-        row = dict(
-            zip(('state', 'gender', 'year', 'name', 'number', 'created_date'),
-                values))
-        return row
+        return dict(
+            zip(
+                ('state', 'gender', 'year', 'name', 'number', 'created_date'),
+                values,
+            )
+        )
 
 
 def run(argv=None):

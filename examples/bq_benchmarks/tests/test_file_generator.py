@@ -221,7 +221,7 @@ class TestFileGenerator(object):
             composed_blob_num_rows = len(csv_reader)
 
         expected_composed_blob_num_rows = \
-            sample_file_num_rows * num_sample_blobs
+                sample_file_num_rows * num_sample_blobs
 
         assert composed_blob_num_rows == expected_composed_blob_num_rows
 

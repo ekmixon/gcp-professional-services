@@ -80,24 +80,24 @@ class PrepareFieldTypes(beam.DoFn):
         self._tm = importlib.import_module('time')
 
     def _return_default_value(self, ftype):
-        if ftype == 'INTEGER':
-            return 0
-        elif ftype == 'FLOAT':
+        if (
+            ftype == 'INTEGER'
+            or ftype == 'FLOAT'
+            or ftype != 'DATATIME'
+            and ftype == 'TIMESTAMP'
+        ):
             return 0
         elif ftype == 'DATATIME':
             return self._tm.mktime(self._tm.strptime('1970-01-01', '%Y-%m-%d'))
-        elif ftype == 'TIMESTAMP':
-            return 0
         else:
             return ''
 
     def process(self, element, fields):
         if not hasattr(element, '__len__'):
-            logging.warn('Element %s has no length' % element)
+            logging.warn(f'Element {element} has no length')
             return []
         if len(element) != len(fields):
-            logging.warn('Row has %s elements instead of %s' %
-                         (len(element), len(fields)))
+            logging.warn(f'Row has {len(element)} elements instead of {len(fields)}')
             return []
         for k, v in element.items():
             ftype = fields[k]
@@ -130,12 +130,10 @@ class PrepareFieldTypes(beam.DoFn):
                         else:
                             break
                     if not isinstance(v, int):
-                        logging.warning(
-                            'Cannot convert date %s. Expected value of type int'
-                            % v)
+                        logging.warning(f'Cannot convert date {v}. Expected value of type int')
                         v = self._return_default_value(ftype)
                 else:
-                    logging.warning('Unknown field type %s' % ftype)
+                    logging.warning(f'Unknown field type {ftype}')
                     v = self._return_default_value(ftype)
             except (TypeError, ValueError) as e:
                 logging.warning('Cannot convert type %s for element %s: '
@@ -163,10 +161,11 @@ def _fetch_table(table_name):
 
 
 def _get_bq_schema(fields):
-    bq_fields = []
-    for k, v in fields.items():
-        bq_fields.append(
-            TableFieldSchema(name=k, type=v, description='Field %s' % k))
+    bq_fields = [
+        TableFieldSchema(name=k, type=v, description=f'Field {k}')
+        for k, v in fields.items()
+    ]
+
     bq_fields.append(
         TableFieldSchema(name='_RAWTIMESTAMP',
                          type='TIMESTAMP',
@@ -207,45 +206,54 @@ def run(argv=None):
     p = beam.Pipeline(argv=pipeline_args)
 
     for input_file in known_args.input_files.split(','):
-        logging.info('START - Preparing file %s' % (input_file))
+        logging.info(f'START - Preparing file {input_file}')
 
         table_name = os.path.splitext(input_file)[0].split('_')[0]
-        logging.info('Retrieving information for table %s' % (table_name))
+        logging.info(f'Retrieving information for table {table_name}')
 
         try:
             table = _fetch_table(table_name)
         except InvalidArgument as e:
-            raise SystemExit('Error getting information for table [%s]: %s' %
-                             (table_name, e))
+            raise SystemExit(f'Error getting information for table [{table_name}]: {e}')
         if not table:
             raise SystemExit('No table found')
 
         fields = json.loads(table['columns'].decode('utf-8'),
                             object_pairs_hook=OrderedDict)
         gs_path = os.path.join(
-            known_args.input_bucket, *[
-                known_args.input_path if known_args.input_path else "",
-                input_file
-            ])
-        logging.info('GS path being read from: %s' % (gs_path))
+            known_args.input_bucket, *[known_args.input_path or "", input_file]
+        )
 
-        (p | 'Read From Text - ' + input_file >> beam.io.ReadFromText(
-            gs_path, coder=FileCoder(list(fields.keys())), skip_header_lines=1)
-         | 'Prepare Field Types - ' + input_file >> beam.ParDo(
-             PrepareFieldTypes(), fields) |
-         'Inject Timestamp - ' + input_file >> beam.ParDo(InjectTimestamp()) |
-         'Write to BigQuery - ' + input_file >> beam.io.Write(
-             beam.io.BigQuerySink(
-                 # The table name passed in from the command line
-                 known_args.bq_dataset + '.' + table_name,
-                 # Schema of the table
-                 schema=_get_bq_schema(fields),
-                 # Creates the table in BigQuery if it does not exist
-                 create_disposition=beam.io.BigQueryDisposition.
-                 CREATE_IF_NEEDED,
-                 # Data will be appended to the table
-                 write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND)))
-        logging.info('END - Preparing file %s' % (input_file))
+        logging.info(f'GS path being read from: {gs_path}')
+
+        (
+            p
+            | (
+                f'Read From Text - {input_file}'
+                >> beam.io.ReadFromText(
+                    gs_path,
+                    coder=FileCoder(list(fields.keys())),
+                    skip_header_lines=1,
+                )
+            )
+        ) | (
+            f'Prepare Field Types - {input_file}'
+            >> beam.ParDo(PrepareFieldTypes(), fields)
+        ) | f'Inject Timestamp - {input_file}' >> beam.ParDo(
+            InjectTimestamp()
+        ) | (
+            f'Write to BigQuery - {input_file}'
+            >> beam.io.Write(
+                beam.io.BigQuerySink(
+                    f'{known_args.bq_dataset}.{table_name}',
+                    schema=_get_bq_schema(fields),
+                    create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
+                    write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
+                )
+            )
+        )
+
+        logging.info(f'END - Preparing file {input_file}')
 
     p.run().wait_until_finish()
     logging.info('END - Pipeline')

@@ -387,10 +387,9 @@ class Handlers:
                                          'user_id_action-followup')
         parameter_full_name = '.'.join(['parameters', 'user_id'])
         output_context_df = flattener.get_context()
-        user_id = output_context_df.loc[output_context_df.name ==
-                                        context_full_name,
-                                        parameter_full_name].to_list()[0]
-        return user_id
+        return output_context_df.loc[
+            output_context_df.name == context_full_name, parameter_full_name
+        ].to_list()[0]
 
 
 class Intents:

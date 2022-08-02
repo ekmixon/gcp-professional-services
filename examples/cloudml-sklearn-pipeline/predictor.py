@@ -113,7 +113,7 @@ class PipelineWrapper(object):
     Returns:
       An instance implementing this Model class.
     """
-    logging.info('The model_dir is {}'.format(model_dir))
+    logging.info(f'The model_dir is {model_dir}')
     # The dumped model is assumed to be named as model.joblib
     model = joblib.load(os.path.join(model_dir, 'model.joblib'))
     return cls(model)

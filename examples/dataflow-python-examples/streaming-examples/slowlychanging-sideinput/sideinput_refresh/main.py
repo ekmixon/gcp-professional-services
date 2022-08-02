@@ -134,8 +134,7 @@ def parse_cliargs(argv: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     return args_parser.parse_known_args(argv)
 
 
-def get_sideinput_collections(sideinput_filepath: beam.pvalue.PCollection, readTransform: beam.PTransform) \
-        -> Dict[str,beam.pvalue.PCollection]:
+def get_sideinput_collections(sideinput_filepath: beam.pvalue.PCollection, readTransform: beam.PTransform) -> Dict[str,beam.pvalue.PCollection]:
     """"Load Side Input data from respective file paths
 
       Args:
@@ -152,15 +151,16 @@ def get_sideinput_collections(sideinput_filepath: beam.pvalue.PCollection, readT
                      dofns.SplitToMultiple(sideinput_types)).with_outputs(*sideinput_types)
                   )
 
-    sideinput_collections = {}
-    for sideinput_type in sideinput_types:
-        sideinput_collections[sideinput_type] = (filepaths[sideinput_type]
-                                                    | f"Read {sideinput_type}" >> readTransform
-                                                   | f"{sideinput_type}:Extract KV" >> beam.Map(
-                                                     transforms.kv_of, "productname", sideinput_type)
-                                                 )
     # yapf: enable
-    return sideinput_collections
+    return {
+        sideinput_type: (
+            filepaths[sideinput_type]
+            | f"Read {sideinput_type}" >> readTransform
+            | f"{sideinput_type}:Extract KV"
+            >> beam.Map(transforms.kv_of, "productname", sideinput_type)
+        )
+        for sideinput_type in sideinput_types
+    }
 
 
 

@@ -62,7 +62,7 @@ class SchemaCreator(object):
                 full_json = []
                 # Iterate through the percents and types list to create the
                 # needed number of columns for each type.
-                for i in range(0, len(types)):
+                for i in range(len(types)):
                     # Gather the column type and percent for the current
                     # iteration.
                     field_type = types[i]

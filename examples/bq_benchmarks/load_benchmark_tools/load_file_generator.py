@@ -117,8 +117,7 @@ class FileGenerator(object):
 
         source_blob_name = restart_file
         restart_file_split = restart_file.split('/')
-        destination_path = '/'.join(
-            restart_file_split[:len(restart_file_split) - 1]) + '/'
+        destination_path = ('/'.join(restart_file_split[:-1]) + '/')
         restart_file_num = int(
             restart_file_split[len(restart_file_split) -
                                1].split('file')[1].split('.')[0])
@@ -248,15 +247,19 @@ class FileGenerator(object):
         p = beam.Pipeline(options=options)
         table = (
             p | 'ReadTable' >> beam.io.Read(beam.io.BigQuerySource(table_spec)))
-        (table | beam.io.WriteToAvro(
-            file_path_prefix=destination_prefix,
-            schema=avro_schema,
-            file_name_suffix='.' + extension,
-            use_fastavro=True,
-            codec=codec,
-            num_shards=1,
-            shard_name_template='',
-        ))
+        (
+            table
+            | beam.io.WriteToAvro(
+                file_path_prefix=destination_prefix,
+                schema=avro_schema,
+                file_name_suffix=f'.{extension}',
+                use_fastavro=True,
+                codec=codec,
+                num_shards=1,
+                shard_name_template='',
+            )
+        )
+
         p.run().wait_until_finish()
         logging.info('Created file: {0:s}'.format(blob_name))
 
@@ -376,7 +379,7 @@ class FileGenerator(object):
         extract_job_config.compression = compression
         extract_job_config.destination_format = destination_format
         extract_job_config.print_header = False
-        destination = destination_prefix + '.' + extension
+        destination = f'{destination_prefix}.{extension}'
         extract_job = self.bq_client.extract_table(
             source=staging_table_util.table_ref,
             destination_uris=destination,
@@ -388,8 +391,6 @@ class FileGenerator(object):
             # written to GCS
             extract_job.result()
             logging.info('Created file: {0:s}'.format(blob_name))
-        # An exception will be thrown if the staging table is too large (greater
-        # than 1 GB) to be extracted to a single file.
         except exceptions.BadRequest as e:
             # If the file type is avro, use _create_large_avro_file to create
             # the file via DataFlow. Using the shard and compose methods below
@@ -411,9 +412,10 @@ class FileGenerator(object):
                              'export to one file.')
                 extract_job = self.bq_client.extract_table(
                     source=staging_table_util.table_ref,
-                    destination_uris=destination + '/*',
+                    destination_uris=f'{destination}/*',
                     job_config=extract_job_config,
                 )
+
                 extract_job.result()
                 # Compose the sharded files that have the provided blob_name
                 # as a prefix into one single file with the name of blob_name.
@@ -504,11 +506,18 @@ class FileGenerator(object):
             logging.info('Dataset {0:s} contains no tables. Please create '
                          'staging tables in {0:s}.'.format(
                              self.primitive_staging_dataset_id))
+        dest_string = ('fileType={0:s}/'
+                       'compression={1:s}/'
+                       'numColumns={2:d}/'
+                       'columnTypes={3:s}/'
+                       'numFiles={4:d}/'
+                       'tableSize={5:d}MB/')
+        file_string = 'file1'
+
         # For each staging table, extract to each fileType, each
         # compressionType, and copy each file so that the combination has
         # the correct numFiles.
-        for (table_list_item, file_type, num_files) in \
-                itertools.product(tables, file_types, file_counts):
+        for (table_list_item, file_type, num_files) in itertools.product(tables, file_types, file_counts):
             for compression_type in file_compression_types[file_type]:
 
                 staging_table_util = table_util.TableUtil(
@@ -517,13 +526,6 @@ class FileGenerator(object):
                 )
                 staging_table_util.set_table_properties()
 
-                gcs_prefix = 'gs://{0:s}/'.format(self.bucket_name)
-                dest_string = ('fileType={0:s}/'
-                               'compression={1:s}/'
-                               'numColumns={2:d}/'
-                               'columnTypes={3:s}/'
-                               'numFiles={4:d}/'
-                               'tableSize={5:d}MB/')
                 destination_path = dest_string.format(
                     file_type,
                     compression_type,
@@ -539,14 +541,6 @@ class FileGenerator(object):
                     extensions = (files_consts['compressionExtensions'])
                     extension = extensions[compression_type]
 
-                file_string = 'file1'
-
-                destination_prefix = '{0:s}{1:s}{2:s}'.format(
-                    gcs_prefix,
-                    destination_path,
-                    file_string,
-                )
-
                 if num_files == 1:
                     # If the number of files in the current combination is 1,
                     # check to see if the one file doesn't yet exist.
@@ -555,10 +549,17 @@ class FileGenerator(object):
                         file_string,
                         extension,
                     )
+                    gcs_prefix = 'gs://{0:s}/'.format(self.bucket_name)
                     if not storage.Blob(
                             bucket=self.bucket,
                             name=blob_name,
                     ).exists(self.gcs_client):
+                        destination_prefix = '{0:s}{1:s}{2:s}'.format(
+                            gcs_prefix,
+                            destination_path,
+                            file_string,
+                        )
+
                         # If the one file doesn't yet exist, it needs to be
                         # created. The method of creation depends on the file
                         # type.

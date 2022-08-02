@@ -49,7 +49,7 @@ class DataLakeToDataMartCGBK:
         """This returns a query against a very large fact table.  We are
         using a fake orders dataset to simulate a fact table in a typical
         data warehouse."""
-        orders_query = """SELECT
+        return """SELECT
             acct_number,
             col_number,
             col_number_1,
@@ -203,7 +203,6 @@ class DataLakeToDataMartCGBK:
         LIMIT
             10
         """
-        return orders_query
 
     def add_account_details(self, xxx_todo_changeme):
         """This function performs the join of the two datasets."""

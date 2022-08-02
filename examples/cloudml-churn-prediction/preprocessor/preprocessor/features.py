@@ -65,19 +65,21 @@ LABEL_CEILINGS = [60, 120, 180, 240]  # number of days for ceiling of each class
 def get_raw_feature_spec():
     """Returns TF feature spec for preprocessing."""
 
-    features = {}
-    features.update(
-        {key: tf.FixedLenFeature([], dtype=tf.string)
-         for key in CATEGORICAL_COLUMNS}
+    features = (
+        {
+            key: tf.FixedLenFeature([], dtype=tf.string)
+            for key in CATEGORICAL_COLUMNS
+        }
+        | {
+            key: tf.FixedLenFeature([], dtype=tf.float32)
+            for key in NUMERIC_COLUMNS
+        }
+        | {
+            key: tf.FixedLenFeature([], dtype=tf.int64)
+            for key in BOOLEAN_COLUMNS
+        }
     )
-    features.update(
-        {key: tf.FixedLenFeature([], dtype=tf.float32)
-         for key in NUMERIC_COLUMNS}
-    )
-    features.update(
-        {key: tf.FixedLenFeature([], dtype=tf.int64)
-         for key in BOOLEAN_COLUMNS}
-    )
+
     features[LABEL_ARRAY_COLUMN] = tf.FixedLenFeature(
         [2*len(LABEL_CEILINGS)], tf.float32)
 

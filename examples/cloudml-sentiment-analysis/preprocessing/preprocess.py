@@ -63,7 +63,7 @@ class ReadFile(beam.DoFn):
     }
     found_labels = [labels[l] for l in labels if l in element]
     if len(found_labels) > 1:
-      raise ValueError('Incompatible path: `{}`.'.format(element))
+      raise ValueError(f'Incompatible path: `{element}`.')
     if found_labels:
       with gfile.GFile(element, 'r') as single_file:
         for line in single_file:
@@ -108,8 +108,8 @@ def run(p, params):
     params: Object holding a set of parameters as name-value pairs.
   """
 
-  path_pattern = os.path.join(params.input_dir, '*', '*{}'.format(
-      constants.FILE_EXTENSION))
+  path_pattern = os.path.join(params.input_dir, '*',
+                              f'*{constants.FILE_EXTENSION}')
   data = (
       p
       | 'ListFiles' >> beam.Create(gfile.Glob(path_pattern))
@@ -124,9 +124,8 @@ def run(p, params):
   for dataset in _DatasetType:
     if not dataset.value:
       continue
-    _ = (
-        data[dataset.name]
-        | 'Shuffle{}'.format(dataset.name) >> shuffle()  # pylint: disable=no-value-for-parameter
-        | 'WriteFiles{}'.format(dataset.name) >> tfrecordio.WriteToTFRecord(
+    _ = (data[dataset.name] | f'Shuffle{dataset.name}' >> shuffle()) | (
+        f'WriteFiles{dataset.name}' >> tfrecordio.WriteToTFRecord(
             os.path.join(params.output_dir, dataset.name + constants.TFRECORD),
-            coder=example_proto_coder.ExampleProtoCoder(schema)))
+            coder=example_proto_coder.ExampleProtoCoder(schema),
+        ))

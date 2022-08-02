@@ -51,9 +51,10 @@ class Experiment:
             f.write(data.format(**params))
 
     def _get_parameters_line(self):
-        params = []
-        for k, v in self.params.items():
-            params.append(''.join(['"--', k, '=', str(v), '"']))
+        params = [
+            ''.join(['"--', k, '=', str(v), '"']) for k, v in self.params.items()
+        ]
+
         if BATCHING_CONFIG_FILE in self.params and not self.enable_batching:
             raise ValueError('Batching should be enabled to use the batching config file.')
         if self.enable_batching:
@@ -75,10 +76,10 @@ class Experiment:
 def parse_args():
     parser = argparse.ArgumentParser(description='Experiment setup.')
     for p in TF_SERVING_ALLOWED_PARAMS:
-        parser.add_argument('--'+p)
+        parser.add_argument(f'--{p}')
     for p in BATCHING_DEFAULT_PARAMS.keys():
-        parser.add_argument('--'+p)
-    parser.add_argument('--'+ENABLE_BATCHING, action='store_true')
+        parser.add_argument(f'--{p}')
+    parser.add_argument(f'--{ENABLE_BATCHING}', action='store_true')
 
     args = parser.parse_args()
     return {k:v for k, v in vars(args).items() if v is not None}

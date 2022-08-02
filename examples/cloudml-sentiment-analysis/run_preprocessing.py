@@ -87,7 +87,7 @@ def run(params):
     def _update(param_name):
       param_value = getattr(params, param_name)
       if param_value:
-        options.update({param_name: param_value})
+        options[param_name] = param_value
 
     _update('worker_machine_type')
     _update('num_workers')

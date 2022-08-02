@@ -24,8 +24,8 @@ from colorama import Style
 bq_client = bigquery.Client()
 
 base_url = "https://datastudio.google.com/reporting/create?"
-report_part_url = base_url + "c.reportId=2e2ea000-8f68-40e2-8847-b80f05069b6e"
-report_base_url = report_part_url + "&r.reportName=MyBillboard"
+report_part_url = f"{base_url}c.reportId=2e2ea000-8f68-40e2-8847-b80f05069b6e"
+report_base_url = f"{report_part_url}&r.reportName=MyBillboard"
 
 std_proj_url = "&ds.ds39.connector=bigQuery&ds.ds39.projectId={}"
 std_table_url = "&ds.ds39.type=TABLE&ds.ds39.datasetId={}&ds.ds39.tableId={}"
@@ -47,10 +47,10 @@ app_version = "2.0"
 def check_billboard_dataset_exists(dataset_id):
     try:
         bq_client.get_dataset(dataset_id)  # Make an API request.
-        print("Dataset {} already exists.".format(dataset_id))
+        print(f"Dataset {dataset_id} already exists.")
         return True
     except NotFound:
-        print("Dataset {} is not found.".format(dataset_id))
+        print(f"Dataset {dataset_id} is not found.")
         return False
 
 
@@ -59,13 +59,11 @@ def check_billboard_dataset_exists(dataset_id):
 def create_dataset(args):
 
     global detailedBBDataset
-    standard_source_id = "{}.{}.{}".format(
-        args.PROJECT_ID, args.STANDARD_BILLING_EXPORT_DATASET_NAME,
-        args.standard_table)
+    standard_source_id = f"{args.PROJECT_ID}.{args.STANDARD_BILLING_EXPORT_DATASET_NAME}.{args.standard_table}"
 
-    detailed_source_id = "{}.{}.{}".format(
-        args.PROJECT_ID, args.DETAILED_BILLING_EXPORT_DATASET_NAME,
-        args.detailed_table)
+
+    detailed_source_id = f"{args.PROJECT_ID}.{args.DETAILED_BILLING_EXPORT_DATASET_NAME}.{args.detailed_table}"
+
 
     standard_table_info = None
     detailed_table_info = None
@@ -73,15 +71,15 @@ def create_dataset(args):
     print("Creating standard Dataset.")
     try:
         standard_table_info = bq_client.get_table(standard_source_id)
-        print("Exported {} in GEO Location={}".format(
-            standard_source_id, standard_table_info.location))
+        print(
+            f"Exported {standard_source_id} in GEO Location={standard_table_info.location}"
+        )
+
         # Create dataset for BB for standard export.
-        dataset_id = "{}.{}".format(args.PROJECT_ID,
-                                    args.BILLBOARD_DATASET_NAME_TO_BE_CREATED)
+        dataset_id = f"{args.PROJECT_ID}.{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}"
         create_dataset_by_location(dataset_id, standard_table_info.location)
     except NotFound:
-        print("Table {} is not found check the export and proceed.".format(
-            standard_source_id))
+        print(f"Table {standard_source_id} is not found check the export and proceed.")
         # Standard is mandatory so program will fail if doesnot exists.
         sys.exit()
 
@@ -92,20 +90,19 @@ def create_dataset(args):
 
     try:
         detailed_table_info = bq_client.get_table(detailed_source_id)
-        print("Exported {} in GEO Location={}".format(
-            detailed_source_id, detailed_table_info.location))
+        print(
+            f"Exported {detailed_source_id} in GEO Location={detailed_table_info.location}"
+        )
+
         # Check if detailed export is in different location.
         if standard_table_info.location != detailed_table_info.location:
-            detailedBBDataset = '{}_detail'.format(
-                args.BILLBOARD_DATASET_NAME_TO_BE_CREATED)
-            dataset_id = "{}.{}".format(args.PROJECT_ID, detailedBBDataset)
-            print("Creating another dataset {} in detailed export loc".format(
-                dataset_id))
+            detailedBBDataset = f'{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}_detail'
+            dataset_id = f"{args.PROJECT_ID}.{detailedBBDataset}"
+            print(f"Creating another dataset {dataset_id} in detailed export loc")
             create_dataset_by_location(dataset_id, detailed_table_info.location)
 
     except NotFound:
-        print("Table {} is not found check the export.".format(
-            detailed_source_id))
+        print(f"Table {detailed_source_id} is not found check the export.")
         # Skip failing if detailed is not there.
         # sys.exit()
 
@@ -125,7 +122,7 @@ def create_dataset_by_location(dataset_id, location):
     # exist within the project.
     # Make an API request.
     dataset = bq_client.create_dataset(dataset, timeout=30)
-    print("Created dataset {} on location {}".format(dataset_id, location))
+    print(f"Created dataset {dataset_id} on location {location}")
 
 
 # Creates the view for the Billboard
@@ -135,20 +132,16 @@ def create_billboard_view(args, isStandard):
     global detailedBBDataset
 
     if isStandard is True:
-        source_id = "{}.{}.{}".format(args.PROJECT_ID,
-                                      args.STANDARD_BILLING_EXPORT_DATASET_NAME,
-                                      args.standard_table)
-        view_id = "{}.{}.{}".format(args.PROJECT_ID,
-                                    args.BILLBOARD_DATASET_NAME_TO_BE_CREATED,
-                                    args.bb_standard)
-    else:
-        source_id = "{}.{}.{}".format(args.PROJECT_ID,
-                                      args.DETAILED_BILLING_EXPORT_DATASET_NAME,
-                                      args.detailed_table)
-        view_id = "{}.{}.{}".format(args.PROJECT_ID, detailedBBDataset,
-                                    args.bb_detailed)
+        source_id = f"{args.PROJECT_ID}.{args.STANDARD_BILLING_EXPORT_DATASET_NAME}.{args.standard_table}"
 
-    print('source_id={} and view_id={}'.format(source_id, view_id))
+        view_id = f"{args.PROJECT_ID}.{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}.{args.bb_standard}"
+
+    else:
+        source_id = f"{args.PROJECT_ID}.{args.DETAILED_BILLING_EXPORT_DATASET_NAME}.{args.detailed_table}"
+
+        view_id = f"{args.PROJECT_ID}.{detailedBBDataset}.{args.bb_detailed}"
+
+    print(f'source_id={source_id} and view_id={view_id}')
 
     # Standard -Fail view creation & url construct if standard is missing
     # Detailed -Skip view creation & url construct if detailed is missing.
@@ -156,12 +149,22 @@ def create_billboard_view(args, isStandard):
         bq_client.get_table(source_id)
     except NotFound:
         if isStandard is True:
-            print("Standard usage cost export not found=" + source_id +
-                  " so skipping billboard view creation")
+            print(
+                (
+                    f"Standard usage cost export not found={source_id}"
+                    + " so skipping billboard view creation"
+                )
+            )
+
             sys.exit()
         else:
-            print("Detailed usage cost export not found=" + source_id +
-                  " so skipping billboard detailed view creation")
+            print(
+                (
+                    f"Detailed usage cost export not found={source_id}"
+                    + " so skipping billboard detailed view creation"
+                )
+            )
+
         return
 
     sql = """
@@ -183,35 +186,47 @@ def create_billboard_view(args, isStandard):
         output_url = output_url + detailed_view_url.format(
             args.PROJECT_ID, detailedBBDataset, args.bb_detailed)
 
-    print('Created view {}{}.{}.{}'.format(Back.GREEN, job.destination.project,
-                                           job.destination.dataset_id,
-                                           job.destination.table_id))
+    print(
+        f'Created view {Back.GREEN}{job.destination.project}.{job.destination.dataset_id}.{job.destination.table_id}'
+    )
+
     print(Style.RESET_ALL)
 
 
 def generate_datastudio_url(args):
     print(
-        "To view dataset, please click " + Back.GREEN +
-        "https://console.cloud.google.com/bigquery", "\n")
+        (
+            f"To view dataset, please click {Back.GREEN}"
+            + "https://console.cloud.google.com/bigquery"
+        ),
+        "\n",
+    )
+
 
     print(Style.RESET_ALL)
 
-    print("To launch datastudio report, please click " + Back.GREEN +
-          output_url + "\n")
+    print(
+        (
+            (
+                f"To launch datastudio report, please click {Back.GREEN}"
+                + output_url
+            )
+            + "\n"
+        )
+    )
+
     print(Style.RESET_ALL)
 
 
 def remove_billboard_dataset(args):
-    standard_view_id = "{}.{}.{}".format(
-        args.PROJECT_ID, args.BILLBOARD_DATASET_NAME_TO_BE_CREATED,
-        args.bb_standard)
+    standard_view_id = f"{args.PROJECT_ID}.{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}.{args.bb_standard}"
+
     bq_client.delete_table(standard_view_id, not_found_ok=True)
-    print("Billboard view {} deleted.".format(standard_view_id))
-    detailed_view_id = "{}.{}.{}".format(
-        args.PROJECT_ID, args.BILLBOARD_DATASET_NAME_TO_BE_CREATED,
-        args.bb_detailed)
+    print(f"Billboard view {standard_view_id} deleted.")
+    detailed_view_id = f"{args.PROJECT_ID}.{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}.{args.bb_detailed}"
+
     bq_client.delete_table(detailed_view_id, not_found_ok=True)
-    print("Billboard view {} deleted.".format(detailed_view_id))
+    print(f"Billboard view {detailed_view_id} deleted.")
     return True
 
 
@@ -219,10 +234,13 @@ def main(argv):
 
     global detailedBBDataset
     parser = argparse.ArgumentParser(
-        description='Billing Export information, Version=' + app_version)
-    parser.add_argument('-v',
-                        action='version',
-                        version='Version of %(prog)s ' + app_version)
+        description=f'Billing Export information, Version={app_version}'
+    )
+
+    parser.add_argument(
+        '-v', action='version', version=f'Version of %(prog)s {app_version}'
+    )
+
 
     parser.add_argument('-pr',
                         dest='PROJECT_ID',
@@ -249,7 +267,7 @@ def main(argv):
                         help='Only when you need cleanup, provide "yes"')
 
     args = parser.parse_args()
-    print('Version of billboard.py  ' + app_version + "\n")
+    print(f'Version of billboard.py  {app_version}' + "\n")
 
     if args.DETAILED_BILLING_EXPORT_DATASET_NAME is None:
         print("Detailed export not provided so setting default to Standard.")
@@ -257,9 +275,9 @@ def main(argv):
 
     # Detailed Export could be in different region so name will be modified as {}_detail in logic
     # So we are storing in global variable.
-    detailedBBDataset = '{}'.format(args.BILLBOARD_DATASET_NAME_TO_BE_CREATED)
+    detailedBBDataset = f'{args.BILLBOARD_DATASET_NAME_TO_BE_CREATED}'
 
-    project_id_temp = "projects/{}".format(args.PROJECT_ID)
+    project_id_temp = f"projects/{args.PROJECT_ID}"
     try:
         project_billing_info = billing.CloudBillingClient(
         ).get_project_billing_info(name=project_id_temp)
@@ -272,7 +290,7 @@ def main(argv):
     billing_account_name = project_billing_info.billing_account_name.split(
         "/")[1]
 
-    print("Project billing account=" + billing_account_name, "\n")
+    print(f"Project billing account={billing_account_name}", "\n")
     args.standard_table = "gcp_billing_export_v1_" + \
         billing_account_name.replace('-', '_')
     args.detailed_table = "gcp_billing_export_resource_v1_" + \

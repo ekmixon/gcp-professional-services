@@ -74,14 +74,10 @@ def read_df_from_bigquery(full_table_path, project_id=None, num_samples=None):
   """
 
   query = metadata.BASE_QUERY.format(table=full_table_path)
-  limit = ' LIMIT {}'.format(num_samples) if num_samples else ''
+  limit = f' LIMIT {num_samples}' if num_samples else ''
   query += limit
 
-  # Use "application default credentials"
-  # Use SQL syntax dialect
-  data_df = pd.read_gbq(query, project_id=project_id, dialect='standard')
-
-  return data_df
+  return pd.read_gbq(query, project_id=project_id, dialect='standard')
 
 
 def read_df_from_gcs(file_pattern):
@@ -106,9 +102,7 @@ def read_df_from_gcs(file_pattern):
       # Assume there is no header
       df_list.append(pd.read_csv(f, names=metadata.CSV_COLUMNS))
 
-  data_df = pd.concat(df_list)
-
-  return data_df
+  return pd.concat(df_list)
 
 
 def upload_to_gcs(local_path, gcs_path):

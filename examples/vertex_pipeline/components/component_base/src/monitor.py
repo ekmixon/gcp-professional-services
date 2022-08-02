@@ -187,10 +187,9 @@ def _get_existing_job(project_id: str,
       filter=f'display_name="{JOB_DISPLAY_NAME}"')
 
   response = client.list_model_deployment_monitoring_jobs(request)
-  for job in response:
-    if job.endpoint == endpoint.resource_name:
-      return job
-  return None
+  return next(
+      (job for job in response if job.endpoint == endpoint.resource_name),
+      None)
 
 
 def _create_objectives_config(
@@ -253,12 +252,9 @@ def _get_thresholds(
     custom_thresholds: str
 ) -> Dict[str, aip_beta.ThresholdConfig]:
   """Get monitoring thresholds."""
-  thresholds = {}
   default_threshold = aip_beta.ThresholdConfig(value=default_threshold_value)
 
-  for feature in all_features:
-    thresholds[feature] = default_threshold
-
+  thresholds = {feature: default_threshold for feature in all_features}
   for custom_threshold in custom_thresholds.split(','):
     pair = custom_threshold.split(':')
     if len(pair) != 2:

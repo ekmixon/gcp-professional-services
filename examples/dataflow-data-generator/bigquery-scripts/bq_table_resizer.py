@@ -82,8 +82,7 @@ class BigQueryTableResizer(object):
             list(self.client.list_datasets())
             self.project = project
         except BadRequest:
-            raise argparse.ArgumentError(
-                "BigQuery is not setup in project: {}".format(project))
+            raise argparse.ArgumentError(f"BigQuery is not setup in project: {project}")
 
         source_table_ref = self.client.dataset(source_dataset).table(
             source_table)
@@ -92,12 +91,13 @@ class BigQueryTableResizer(object):
             self.source_table = self.client.get_table(source_table_ref)
         except NotFound:
             raise argparse.ArgumentError(
-                "Source table {} does not exist in {}.{}".format(
-                    source_table, project, source_dataset))
+                f"Source table {source_table} does not exist in {project}.{source_dataset}"
+            )
+
 
         if destination_dataset and destination_table:
             self.dest_table_ref = \
-                self.client.dataset(destination_dataset).table(
+                    self.client.dataset(destination_dataset).table(
                     destination_table
                 )
         else:  # Default to an inplace copy.
@@ -138,14 +138,11 @@ class BigQueryTableResizer(object):
             dest_gb = dest_bytes / float(1024**3)
 
             # Recalculate the gap.
-            if dest_rows:
-                gap = self.target_rows - dest_rows
-            else:
-                gap = self.target_rows
+            gap = self.target_rows - dest_rows if dest_rows else self.target_rows
+            print(
+                f'{dest_rows} rows in table of size {round(dest_gb, 2)} GB, with a target of {self.target_rows}, leaving a gap of {gap}'
+            )
 
-            print(('{} rows in table of size {} GB, with a target of {}, '
-                   'leaving a gap of {}'.format(dest_rows, round(dest_gb, 2),
-                                                self.target_rows, gap)))
 
             # Greedily copy the largest of dest_table and source_table into
             # dest_table without going over the target rows. The last query

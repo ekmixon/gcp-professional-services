@@ -107,11 +107,14 @@ def push_id_to_pubsub(project: str,
     topic_name = os.environ.get('topic_name')
     topic_path = publisher_client.topic_path(project, topic_name)
     message = job_entry['id']
-    publisher_client.publish(topic_path,
-                             message.encode("utf-8"),
-                             operation_name=job_entry['id'],
-                             audio_file_name=job_entry['file'],
-                             pipeline_start_time=job_entry['pipeline_start_time'])
+    publisher_client.publish(
+        topic_path,
+        message.encode("utf-8"),
+        operation_name=message,
+        audio_file_name=job_entry['file'],
+        pipeline_start_time=job_entry['pipeline_start_time'],
+    )
+
     log_message = (f'Repushed STT {job_entry["id"]} for {job_entry["file"]} to '
                    f'PubSub')
     logging.info(log_message)

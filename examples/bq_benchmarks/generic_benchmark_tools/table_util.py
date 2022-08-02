@@ -97,14 +97,10 @@ class TableUtil(object):
         Returns:
             True if table does exist in self.dataset_ref, else False.
         """
-        if self.table_id in [
-                table.table_id
-                for table in (self.bq_client.list_tables(self.dataset_ref))
-        ]:
-            exists = True
-        else:
-            exists = False
-        return exists
+        return self.table_id in [
+            table.table_id
+            for table in (self.bq_client.list_tables(self.dataset_ref))
+        ]
 
     def get_bq_translated_schema(self):
         """Translates a schema in json format into BigQuery format.
@@ -181,8 +177,7 @@ class TableUtil(object):
         field_type_counts = Counter(field_types)
 
         column_types = ''
-        counter = 1
-        for field_type in field_type_counts:
+        for counter, field_type in enumerate(field_type_counts, start=1):
             percent = (
                 (field_type_counts[field_type] / float(self.num_columns)) * 100)
             column_types = column_types + '{0:.0f}_{1:s}'.format(
@@ -190,7 +185,5 @@ class TableUtil(object):
                 field_type,
             )
             if counter < len(field_type_counts):
-                column_types = column_types + '_'
-            counter += 1
-
+                column_types = f'{column_types}_'
         return column_types

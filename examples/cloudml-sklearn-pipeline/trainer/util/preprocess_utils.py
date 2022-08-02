@@ -89,6 +89,4 @@ def get_preprocess_pipeline(feature_columns, categorical_names,
         ('categorical', categorical_transformer, categorical_boolean),
     ])
 
-  preprocessor = compose.ColumnTransformer(transform_list)
-
-  return preprocessor
+  return compose.ColumnTransformer(transform_list)

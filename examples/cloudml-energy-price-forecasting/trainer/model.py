@@ -61,14 +61,20 @@ def create_regressor(config, parameters):
     day = tf.feature_column.embedding_column(
         day, dimension=parameters.day_embedding)
 
-    weather = [tf.feature_column.numeric_column(
-        'weather' + str(i),
-        normalizer_fn=(lambda x, i = i: (x - mean[i]) / std[i])
-    ) for i in range(constants.WEATHER_SIZE)]
+    weather = [
+        tf.feature_column.numeric_column(
+            f'weather{str(i)}',
+            normalizer_fn=(lambda x, i=i: (x - mean[i]) / std[i]),
+        )
+        for i in range(constants.WEATHER_SIZE)
+    ]
 
-    distribution = [tf.feature_column.numeric_column(
-        'distribution' + str(i)
-    ) for i in range(constants.DISTRIBUTION_SIZE)]
+
+    distribution = [
+        tf.feature_column.numeric_column(f'distribution{str(i)}')
+        for i in range(constants.DISTRIBUTION_SIZE)
+    ]
+
 
     feature_cols = [hour, day] + weather + distribution
 

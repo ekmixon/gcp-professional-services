@@ -35,15 +35,9 @@ def _get_model(resource_name: str) -> aiplatform.Model:
 
 
 def _get_model_from_endpoint(endpoint: aiplatform.Endpoint) -> aiplatform.Model:
-  current_deployed_model_id = None
-
   traffic_split = endpoint.gca_resource.traffic_split
-  for key in traffic_split:
-    if traffic_split[key] == 100:
-      current_deployed_model_id = key
-      break
-
-  if current_deployed_model_id:
+  if current_deployed_model_id := next(
+      (key for key in traffic_split if traffic_split[key] == 100), None):
     for deployed_model in endpoint.gca_resource.deployed_models:
       if deployed_model.id == current_deployed_model_id:
         return aiplatform.Model(deployed_model.model)
@@ -133,12 +127,11 @@ def batch_prediction(
   logging.info(f'batch prediction job: {batch_pred_job.resource_name}')
 
   batch_pred_job.wait()
-  if batch_pred_job.state == job_state_v1.JobState.JOB_STATE_SUCCEEDED:
-    logging.info(f'batch prediction job has finished with info: '
-                 f'{batch_pred_job.completion_stats}')
-    prediction_result.uri = batch_pred_job.output_info.gcs_output_directory
-  else:
+  if batch_pred_job.state != job_state_v1.JobState.JOB_STATE_SUCCEEDED:
     raise RuntimeError(batch_pred_job.error)
+  logging.info(f'batch prediction job has finished with info: '
+               f'{batch_pred_job.completion_stats}')
+  prediction_result.uri = batch_pred_job.output_info.gcs_output_directory
 
 
 def executor_main():

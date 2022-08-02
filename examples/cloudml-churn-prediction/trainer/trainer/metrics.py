@@ -40,15 +40,13 @@ def get_class(predictions, threshold=0.50):
     """
     cum_preds = tf.math.cumprod(predictions, axis=1)
     compare_preds = tf.math.greater(cum_preds, tf.cast(threshold, tf.float32))
-    class_preds = tf.reduce_sum(tf.cast(compare_preds, tf.float32), axis=1)
-    return class_preds
+    return tf.reduce_sum(tf.cast(compare_preds, tf.float32), axis=1)
 
 
 def get_label(labels):
     """Calculate actual label from [survival array | failure array]."""
     splits = tf.split(labels, 2, axis=1)
-    labels_value = tf.reduce_sum(splits[0], axis=1)
-    return labels_value
+    return tf.reduce_sum(splits[0], axis=1)
 
 
 def eval_metric_fn(labels, predictions, params):

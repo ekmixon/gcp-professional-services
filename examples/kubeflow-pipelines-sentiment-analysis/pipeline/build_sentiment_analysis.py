@@ -91,5 +91,5 @@ if __name__ == '__main__':
   """Compiles the pipeline to a file."""
   filename = 'sentiment_analysis{dt:%Y%m%d_%H%M%S}.pipeline.tar.gz'.format(
       dt=datetime.datetime.now())
-  filepath = './{}'.format(filename)
+  filepath = f'./{filename}'
   kfp.compiler.Compiler().compile(pipeline_func, filepath)

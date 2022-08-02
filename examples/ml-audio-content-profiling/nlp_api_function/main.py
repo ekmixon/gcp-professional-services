@@ -214,9 +214,9 @@ def main(data: dict, context) -> None:
         transcript = json_msg['json_payload']
         nlp = []
         for speech_exert in transcript:
-            response = get_nlp_api_results(nlp_client,
-                                           speech_exert['transcript'])
-            if response:
+            if response := get_nlp_api_results(
+                nlp_client, speech_exert['transcript']
+            ):
                 per_segment_nlp = format_nlp_api_results(response,
                                                          speech_exert['transcript'])
                 nlp.append(per_segment_nlp)

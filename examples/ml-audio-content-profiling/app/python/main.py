@@ -78,20 +78,17 @@ class Analysis(Resource):
             bucket_list = list(gcs_client.list_buckets())
             transcript_bucket = gcs_transcript_utils.find_bucket_with_prefix(bucket_list,
                                                                              'transcript')
-            transcript_per_segment = gcs_transcript_utils.get_gcs_object(gcs_client,
-                                                                         transcript_bucket,
-                                                                         file_name)
-            if transcript_per_segment:
+            if transcript_per_segment := gcs_transcript_utils.get_gcs_object(
+                gcs_client, transcript_bucket, file_name
+            ):
                 transcript_json = transcript_per_segment['json_payload']
                 transcript = gcs_transcript_utils.extract_full_transcript(transcript_json)
                 output_bucket = gcs_transcript_utils.find_bucket_with_prefix(bucket_list,
                                                                             'output-files')
                 toxicity_path = f'toxicity-files/{file_name}'
-                toxicity = gcs_transcript_utils.get_gcs_object(gcs_client,
-                                                               output_bucket,
-                                                               toxicity_path)
-
-                if toxicity:
+                if toxicity := gcs_transcript_utils.get_gcs_object(
+                    gcs_client, output_bucket, toxicity_path
+                ):
                     toxicity.sort(key=lambda text: text['toxicity'],
                                   reverse=True)
                     return jsonify(file_name=file_name,
@@ -130,10 +127,9 @@ class Entities(Resource):
             nlp_bucket = gcs_transcript_utils.find_bucket_with_prefix(bucket_list,
                                                                       'output-files')
             nlp_path = f'nlp-files/{file_name}'
-            nlp_json = gcs_transcript_utils.get_gcs_object(gcs_client,
-                                                           nlp_bucket,
-                                                           nlp_path)
-            if nlp_json:
+            if nlp_json := gcs_transcript_utils.get_gcs_object(
+                gcs_client, nlp_bucket, nlp_path
+            ):
                 text_section = [section for section in nlp_json if section['text'] == text]
                 sentiments = text_section[0]['nlp_response']
                 sentiments.sort(key=lambda entity: entity['score'])

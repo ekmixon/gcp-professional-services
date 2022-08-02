@@ -21,9 +21,10 @@ import posixpath
 from utils.datasettype import DatasetType
 
 NUM_FEATURES_IN_DATASET = 28
-FEATURE_COLUMNS = (
-    ['V' + str(i) for i in range(1, NUM_FEATURES_IN_DATASET + 1)
-    ] + ['Time', 'Amount'])
+FEATURE_COLUMNS = [
+    f'V{str(i)}' for i in range(1, NUM_FEATURES_IN_DATASET + 1)
+] + ['Time', 'Amount']
+
 LABEL_COLUMN = 'Class'
 KEY_COLUMN = 'key'
 BQ_DATASET = 'fraud_detection'

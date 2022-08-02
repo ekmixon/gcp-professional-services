@@ -52,11 +52,7 @@ def check_metrics(
     raise RuntimeError(f'Metrics name {metrics_name} is not supported')
 
   metrics_value = basic_metrics.metadata[metrics_name]
-  if metrics_value >= metrics_threshold:
-    is_better_metrics = 'True'
-  else:
-    is_better_metrics = 'False'
-
+  is_better_metrics = 'True' if metrics_value >= metrics_threshold else 'False'
   return (is_better_metrics,)
 
 

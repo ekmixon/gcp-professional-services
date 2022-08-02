@@ -50,11 +50,7 @@ def main():
   )
 
   # Specify the BigQuery dataset and training features table.
-  bigquery_uri_train_table = 'bq://{}.{}.{}'.format(
-      global_config['destination_project_id'],
-      global_config['destination_dataset'],
-      global_config['features_train_table'],
-  )
+  bigquery_uri_train_table = f"bq://{global_config['destination_project_id']}.{global_config['destination_dataset']}.{global_config['features_train_table']}"
 
   # Create the AutoML dataset for training.
   dataset = client.create_dataset(global_config['dataset_display_name'])

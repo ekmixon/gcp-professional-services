@@ -182,7 +182,7 @@ def create_deep_cols(feat_cols, name):
     deep_cols = None
     if name not in ['linearclassifier', 'linearregressor',
                     'polynomialclassifier', 'polynomialregressor']:
-        deep_cols = list()
+        deep_cols = []
         for i in feat_cols:
             if i.dtype == 'string':
                 i = tf.feature_column.indicator_column(i)
@@ -200,9 +200,7 @@ def none_or_str(value):
     Returns:
         None if the string none is found
     """
-    if value == 'None':
-        return None
-    return value
+    return None if value == 'None' else value
 
 
 def convert_to_list(value):
@@ -216,9 +214,7 @@ def convert_to_list(value):
         None if the string none is found
         list if the string is space seperated values is found
     """
-    if value == 'None':
-        return None
-    return value.split(' ')
+    return None if value == 'None' else value.split(' ')
 
 
 def convert_to_dict(value):
@@ -232,9 +228,7 @@ def convert_to_dict(value):
         None if the string none is found
         dict if the string is space seperated values is found
     """
-    if value == 'None':
-        return None
-    return ast.literal_eval(value)
+    return None if value == 'None' else ast.literal_eval(value)
 
 
 def run_experiment(hparams):

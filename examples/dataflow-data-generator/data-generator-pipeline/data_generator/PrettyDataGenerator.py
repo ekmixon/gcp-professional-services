@@ -245,10 +245,7 @@ class DataGenerator(object):
         }
 
         faker_schema = {}
-        if fields:
-            this_call_schema = fields
-        else:  # some users pass a schema wrapped in fields.
-            this_call_schema = self.schema.get('fields', self.schema)
+        this_call_schema = fields or self.schema.get('fields', self.schema)
         for obj in this_call_schema:
             is_special = False
             if obj['type'].lower() == 'record':
@@ -303,7 +300,7 @@ class FakeRowGen(beam.DoFn):
     # checking type and mode.
 
     def get_field_dict(self, field_name, fields=None):
-        this_call_schema = fields if fields else self.data_gen.schema['fields']
+        this_call_schema = fields or self.data_gen.schema['fields']
         return [f for f in this_call_schema if f['name'] == field_name][0]
 
     def get_percent_between_min_and_max_date(self, date_string):
@@ -354,7 +351,7 @@ class FakeRowGen(beam.DoFn):
         if field['type'] == 'RECORD':
             # We will fill each array of struct with 0-3 elements.
             array_of_struct = []
-            for i in range(random.randint(0, 3)):
+            for _ in range(random.randint(0, 3)):
                 for col in field['fields']:
                     # Recursively sanity check the next level.
                     nested_field = self.sanity_check(record[fieldname],
@@ -369,17 +366,16 @@ class FakeRowGen(beam.DoFn):
             # If the description of the field is a RDMS schema like VARCHAR(255)
             # then we extract this number and generate a string of this length.
             if field.get('description'):
-                extracted_numbers = re.findall('\d+', field['description'])
-                if extracted_numbers:
+                if extracted_numbers := re.findall('\d+', field['description']):
                     STRING_LENGTH = int(extracted_numbers[0])
 
             if isinstance(record, dict):
                 if len(record[fieldname]) > STRING_LENGTH:
-                    record[fieldname] = record[fieldname][0:STRING_LENGTH - 1]
+                    record[fieldname] = record[fieldname][:STRING_LENGTH - 1]
                 record[fieldname] = str(record[fieldname])
             else:
                 if len(record[0][fieldname]) > STRING_LENGTH:
-                    record[fieldname] = record[fieldname][0:STRING_LENGTH - 1]
+                    record[fieldname] = record[fieldname][:STRING_LENGTH - 1]
                 print(record)
                 record[0][fieldname] = str(record[fieldname])
 
@@ -407,8 +403,8 @@ class FakeRowGen(beam.DoFn):
             max_size = self.data_gen.max_int
 
             if '_max_' in field['name'].lower():
-                max_size = int(fieldname[fieldname.find("_max_") +
-                                         5:len(fieldname)])
+                max_size = int(fieldname[fieldname.find("_max_") + 5 :])
+
             # This implements max and sign constraints
             # and avoids regenerating a random integer if already obeys min/max
             # integer.
@@ -419,13 +415,13 @@ class FakeRowGen(beam.DoFn):
                 record[fieldname] = abs(record[fieldname])
             record[fieldname] = int(record[fieldname])
 
-        elif field['type'] == 'FLOAT' or field['type'] == 'NUMERIC':
+        elif field['type'] in ['FLOAT', 'NUMERIC']:
             min_size = self.data_gen.min_float
             max_size = self.data_gen.max_float
 
             if '_max_' in field['name'].lower():
-                max_size = int(fieldname[fieldname.find("_max_") +
-                                         5:len(fieldname)])
+                max_size = int(fieldname[fieldname.find("_max_") + 5 :])
+
 
             if 'date' in record:
                 # Ensure that the date has been sanity checked, and set as a
@@ -511,9 +507,7 @@ class FakeRowGen(beam.DoFn):
         and converting it back to a datatype that matches the schema.
         """
         for key in keys:
-            if key == 'frequency':
-                pass
-            else:
+            if key != 'frequency':
                 field_dict = self.get_field_dict(key)
                 datatype = field_dict['type']
                 if datatype == 'STRING':
@@ -522,7 +516,6 @@ class FakeRowGen(beam.DoFn):
                     pass
                 elif datatype == 'BYTES':
                     keys[key] = bytes(keys[key])
-                #TODO add other datatypes as needed by your usecase.
         return keys
 
     def generate_fake(self, fschema=None, key_dict=None):
@@ -573,14 +566,11 @@ class FakeRowGen(beam.DoFn):
 
             #TODO make this a splittable DoFn to avoid scenario where we hang for large
             # frequency values.
-            for i in range(int(frequency)):
-                row = self.generate_fake(fschema=faker_schema,
-                                         key_dict=element)
-                yield row
+            for _ in range(int(frequency)):
+                yield self.generate_fake(fschema=faker_schema, key_dict=element)
+
         except AttributeError:
-            # The contents of this element are ignored if they are a string.
-            row = self.generate_fake(fschema=faker_schema, key_dict=element)
-            yield row
+            yield self.generate_fake(fschema=faker_schema, key_dict=element)
 
 
 def parse_data_generator_args(argv):
@@ -811,13 +801,7 @@ def fetch_schema(data_args, schema_inferred):
         from input_bq_table.
     """
     if not data_args.schema_file:
-        if not data_args.input_bq_table:
-            # Both schema and input_bq_table are unset.
-            # Use gcs schema file because safer than assuming this user has
-            # created the lineorders table.
-            data_args.schema_file = \
-                'gs://python-dataflow-example/schemas/lineorder-schema.json'
-        else:
+        if data_args.input_bq_table:
             # Need to fetch schema from existing BQ table.
             bq_cli = bq.Client()
             dataset_name, table_name = data_args.input_bq_table.split('.', 1)
@@ -849,6 +833,12 @@ def fetch_schema(data_args, schema_inferred):
                 except NotFound:
                     schema_inferred = False
 
+        else:
+            # Both schema and input_bq_table are unset.
+            # Use gcs schema file because safer than assuming this user has
+            # created the lineorders table.
+            data_args.schema_file = \
+                'gs://python-dataflow-example/schemas/lineorder-schema.json'
     if data_args.schema_file and data_args.input_bq_table:
         logging.error('Error: pipeline was passed both schema_file and '
                       'input_bq_table. '
@@ -873,8 +863,7 @@ def write_n_line_file_to_gcs(project, temp_location, n):
 
     gcs_client = gcs.Client(project=project)
     temp_bucket = gcs_client.get_bucket(bucket_name)
-    temp_blob = gcs.Blob(path + '/temp_num_records%s.txt' % uuid4(),
-                         temp_bucket)
+    temp_blob = gcs.Blob(path + f'/temp_num_records{uuid4()}.txt', temp_bucket)
 
     # Write num_records newlines to a file_string. These will be our initial
     # PCollection elements.

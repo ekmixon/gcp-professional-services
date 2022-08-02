@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Unit tests for export query results function"""
+
 import os
 import sys
 import time
 
 import pytest
 
-sys.path.append(os.path.realpath(os.path.dirname(__file__) + "../.."))
+sys.path.append(os.path.realpath(f"{os.path.dirname(__file__)}../.."))
 from export_query_results_function import main
 
 

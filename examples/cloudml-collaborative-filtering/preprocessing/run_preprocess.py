@@ -62,8 +62,7 @@ def parse_arguments(argv):
       "--plain_text",
       action="store_true",
       help="Write pipeline output to plain text instead of tf-record.")
-  args = parser.parse_args(args=argv[1:])
-  return args
+  return parser.parse_args(args=argv[1:])
 
 
 def set_logging(log_level):
@@ -100,17 +99,15 @@ def get_pipeline_options(args, config):
       raise ValueError("Job name must be specified for cloud runs.")
     if not args.job_dir:
       raise ValueError("Job dir must be specified for cloud runs.")
-    options.update({
+    options |= {
         "job_name": args.job_name,
         "max_num_workers": int(config.get("max_num_workers")),
-        "setup_file": os.path.abspath(get_relative_path(
-            "../setup.py")),
+        "setup_file": os.path.abspath(get_relative_path("../setup.py")),
         "staging_location": os.path.join(args.job_dir, "staging"),
         "temp_location": os.path.join(args.job_dir, "tmp"),
         "region": config.get("region"),
-    })
-  pipeline_options = beam.pipeline.PipelineOptions(flags=[], **options)
-  return pipeline_options
+    }
+  return beam.pipeline.PipelineOptions(flags=[], **options)
 
 
 def main():

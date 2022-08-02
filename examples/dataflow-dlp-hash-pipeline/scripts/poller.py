@@ -19,8 +19,7 @@ class Poller():
   def dump(self):
     with self.lock:
       table = [["Filename", "Findings"]]
-      for fn in self.counters:
-        table.append([fn, self.counters[fn]])
+      table.extend([fn, self.counters[fn]] for fn in self.counters)
       print(tabulate(table))
       self.counters = {}
 
@@ -46,7 +45,9 @@ class Poller():
   def run(self):
     subscriber = pubsub_v1.SubscriberClient()
     future = subscriber.subscribe(self.opts.subscription, self.running_total)
-    print("Successfully subscribed to {}. Messages will print below...".format(self.opts.subscription))
+    print(
+        f"Successfully subscribed to {self.opts.subscription}. Messages will print below..."
+    )
     try:
       future.result()
     except KeyboardInterrupt:

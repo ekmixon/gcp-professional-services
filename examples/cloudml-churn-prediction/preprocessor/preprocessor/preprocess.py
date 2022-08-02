@@ -77,7 +77,7 @@ def _generate_fake_data(element):
     d2 = datetime.datetime.strptime('12/25/2018', '%m/%d/%Y')
     start_date = _random_start_date(d1, d2)
     end_date = _random_end_date(start_date)
-    active = True if end_date > d2 else False
+    active = end_date > d2
     element.update(start_date=start_date)
     if not active:
         element.update(end_date=end_date)
@@ -98,10 +98,12 @@ def append_lifetime_duration(element):
             duration: number of days between subscription start date and end
                 date, or current date if customer is still active
     """
-    if not element['active']:
-        duration = element['end_date'] - element['start_date']
-    else:
-        duration = datetime.datetime.now() - element['start_date']
+    duration = (
+        datetime.datetime.now() - element['start_date']
+        if element['active']
+        else element['end_date'] - element['start_date']
+    )
+
     duration_days = duration.days
     element.update(duration=duration_days)
     return element
@@ -119,7 +121,7 @@ def append_label(element):
                 between
     """
     class_ceilings = features.LABEL_CEILINGS
-    for index in range(0, len(class_ceilings)):
+    for index in range(len(class_ceilings)):
         if element['duration'] < class_ceilings[index]:
             element.update(label=features.LABEL_VALUES[index])
             return element
@@ -153,11 +155,10 @@ def combine_censorship_duration(element):
     y = np.zeros((num_intervals * 2))
     breaks = [0] + features.LABEL_CEILINGS
     duration = element['duration']
-    y[0:num_intervals] = 1.0*(np.full(num_intervals, duration) >= breaks[1:])
-    if not element['active']:
-        if duration < breaks[-1]:
-            y[num_intervals + np.where(np.full(
-                num_intervals, duration) < breaks[1:])[0][0]] = 1.0
+    y[:num_intervals] = 1.0*(np.full(num_intervals, duration) >= breaks[1:])
+    if not element['active'] and duration < breaks[-1]:
+        y[num_intervals + np.where(np.full(
+            num_intervals, duration) < breaks[1:])[0][0]] = 1.0
     element.update(labelArray=list(y))
     return element
 
@@ -241,8 +242,9 @@ def parse_arguments(argv):
     parser.add_argument(
         '--job_name',
         help='Name of the Cloud Dataflow job',
-        default='{}-{}'.format('bq-to-tfrecords', timestamp),
+        default=f'bq-to-tfrecords-{timestamp}',
     )
+
     parser.add_argument(
         '--output_dir',
         help='Local or GCS directory to store output TFRecords.',
@@ -283,15 +285,14 @@ def parse_arguments(argv):
 def get_pipeline_args(flags):
     """Create Apache Beam pipeline arguments."""
 
-    options = {
+    return {
         'project': flags.project_id,
         'staging_location': os.path.join(flags.output_dir, 'staging'),
         'temp_location': os.path.join(flags.output_dir, 'temp'),
         'job_name': flags.job_name,
         'save_main_session': True,
-        'setup_file': './setup.py'
+        'setup_file': './setup.py',
     }
-    return options
 
 
 # pylint: disable=expression-not-assigned
@@ -327,14 +328,14 @@ def build_pipeline(p, flags):
     for dataset_type, dataset in [('Train', raw_train),
                                   ('Eval', raw_eval),
                                   ('Test', raw_test)]:
-        transform_label = 'Transform{}'.format(dataset_type)
+        transform_label = f'Transform{dataset_type}'
         t, metadata = (((dataset, raw_metadata), transform_fn)
                        | transform_label >> tft_beam.TransformDataset())
         if dataset_type == 'Train':
             (metadata | 'WriteMetadata' >> tft_beam_io.WriteMetadata(
                 os.path.join(
                     flags.output_dir, 'transformed_metadata'), pipeline=p))
-        write_label = 'Write{}TFRecord'.format(dataset_type)
+        write_label = f'Write{dataset_type}TFRecord'
         t | write_label >> write_tfrecord(
             dataset_type, flags.output_dir, metadata)
 

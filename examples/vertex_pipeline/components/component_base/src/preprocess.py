@@ -85,11 +85,10 @@ def preprocess_data(
     job_config=job_config)
   extract_job.result()  # Waits for job to complete.
 
-  if extract_job.state == 'DONE':
-    logging.info('Table export completed')
-    output_dataset.uri = destination_uri
-  else:
+  if extract_job.state != 'DONE':
     raise RuntimeError(extract_job.errors)
+  logging.info('Table export completed')
+  output_dataset.uri = destination_uri
 
 
 def executor_main():

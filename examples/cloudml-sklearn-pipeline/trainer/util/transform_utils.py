@@ -52,8 +52,7 @@ class DFSelector(BaseEstimator, TransformerMixin):
       Numpy.array containing the data in desired columns
     """
 
-    result = X[self.attribute_names].to_numpy()
-    return result
+    return X[self.attribute_names].to_numpy()
 
 
 class VectorizedFunctionTransformer(BaseEstimator, TransformerMixin):
@@ -123,15 +122,13 @@ def _parse_signature(input_length, output_length):
   """
 
   if input_length == 1 and output_length == 1:
-    signature = None
+    return None
   elif input_length > 1 and output_length == 1:
-    signature = '(n)->()'
+    return '(n)->()'
   elif input_length == 1 and output_length > 1:
-    signature = '()->(n)'
+    return '()->(n)'
   else:
-    signature = '(n)->(n)'
-
-  return signature
+    return '(n)->(n)'
 
 
 def get_transform_pipeline(transform_config):
@@ -194,24 +191,20 @@ def get_transform_pipeline(transform_config):
       )
       transformed_column_names.extend(config['output_columns'])
     else:
-      inner_pipeline = list()
-
       # Use the name of the first output feature as the name of this process
       process_name = config['output_columns'][0][0]
       # Infer the signature based on the shape of input_columns,  output_columns
       signature = _parse_signature(len(config['input_columns']),
                                    len(config['output_columns']))
 
-      # First select the columns needed for the transformations
-      inner_pipeline.append(('extract', DFSelector(config['input_columns'])))
-      # Using the selected columns and produce new columns based on
-      # provided process_function
-      inner_pipeline.append(
-          (process_name + '-process',
-           VectorizedFunctionTransformer(func=config['process_function'],
-                                         signature=signature))
-      )
-
+      inner_pipeline = [
+          ('extract', DFSelector(config['input_columns'])),
+          (
+              f'{process_name}-process',
+              VectorizedFunctionTransformer(
+                  func=config['process_function'], signature=signature),
+          ),
+      ]
       transform_pipeline.append((process_name, Pipeline(inner_pipeline)))
 
       # Keep track of the schema after transformation,

@@ -155,9 +155,9 @@ def parse_args(argv):
             '--results_table_name': args.results_table_name,
             '--results_dataset_id': args.results_dataset_id
         }
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments,
                                           '--create_results_table'))
@@ -169,9 +169,9 @@ def parse_args(argv):
             '--dataflow_staging_location': args.dataflow_staging_location,
             '--dataflow_temp_location': args.dataflow_temp_location,
         }
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments,
                                           '--create_staging_tables'))
@@ -184,17 +184,17 @@ def parse_args(argv):
             '--dataflow_staging_location': args.dataflow_staging_location,
             '--dataflow_temp_location': args.dataflow_temp_location,
         }
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments, '--create_files'))
 
     if args.restart_file:
         required_args = {'--create_files': args.create_files}
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments, '--restart_file'))
 
@@ -210,9 +210,9 @@ def parse_args(argv):
             '--results_dataset_id': args.results_dataset_id,
             '--bq_logs_dataset': args.bq_logs_dataset
         }
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments,
                                           '--run_file_loader_benchmark'))
@@ -229,9 +229,9 @@ def parse_args(argv):
             '--results_dataset_id': args.results_dataset_id,
             '--bq_logs_dataset': args.bq_logs_dataset
         }
-        missing_arguments = ", ".join(
-            [arg for arg in required_args if not required_args[arg]])
-        if missing_arguments:
+        if missing_arguments := ", ".join(
+            [arg for arg in required_args if not required_args[arg]]
+        ):
             parser.error(
                 missing_args_error.format(missing_arguments,
                                           '--run_federated_query_benchmark'))
@@ -242,7 +242,6 @@ def parse_args(argv):
 def main(argv=None):
     args = parse_args(argv)
 
-    create_results_table = args.create_results_table
     create_benchmark_schemas = args.create_benchmark_schemas
     benchmark_table_schemas_dir = args.benchmark_table_schemas_directory
     create_staging_tables = args.create_staging_tables
@@ -268,8 +267,7 @@ def main(argv=None):
 
     file_params = load_file_parameters.FILE_PARAMETERS
 
-    # Run provided commands
-    if create_results_table:
+    if create_results_table := args.create_results_table:
         logging.info('Creating results table {0:s} from schema in '
                      '{1:s}.'.format(
                          results_table_name,

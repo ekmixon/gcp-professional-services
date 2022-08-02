@@ -38,16 +38,13 @@ def _get_estimator(flags):
   elif metadata.PROBLEM_TYPE == 'regression':
     estimator_class = ensemble.RandomForestRegressor
   else:
-    raise ValueError(
-        'The problem type is not supported: {}'.format(metadata.PROBLEM_TYPE))
+    raise ValueError(f'The problem type is not supported: {metadata.PROBLEM_TYPE}')
 
-  classifier = estimator_class(
+  return estimator_class(
       n_estimators=flags.n_estimators,
       max_depth=flags.max_depth,
-      min_samples_leaf=flags.min_samples_leaf
+      min_samples_leaf=flags.min_samples_leaf,
   )
-
-  return classifier
 
 
 def get_pipeline(flags):

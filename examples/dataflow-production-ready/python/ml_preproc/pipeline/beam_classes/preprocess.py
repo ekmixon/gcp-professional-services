@@ -37,7 +37,5 @@ class PreprocessingTransform(beam.PTransform):
       CleanAndTransfToDictDoFn(),
       abbrev=self._abbrev)
 
-    calc_similarity: PCollection[dict] = clean_dicts | "Calculate similarities" >> beam.ParDo(
-      CalculateSimilaritiesDoFn())
-
-    return calc_similarity
+    return clean_dicts | "Calculate similarities" >> beam.ParDo(
+        CalculateSimilaritiesDoFn())

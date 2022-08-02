@@ -98,15 +98,10 @@ class StructuredLog(object):
         self.function_project = os.getenv('GCP_PROJECT')
         self.function_region = os.getenv('FUNCTION_REGION')
         self.function_name = os.getenv('FUNCTION_NAME')
-        stream = os.getenv('DNS_VM_GC_REPORTING_LOG_STREAM')
-        # The log stream structured reports are sent to.
-        # https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry
-        if stream:
+        if stream := os.getenv('DNS_VM_GC_REPORTING_LOG_STREAM'):
             self.log_name = stream
         else:
-            self.log_name = (
-                'projects/{}/logs/{}'
-            ).format(self.function_project, self.function_name)
+            self.log_name = f'projects/{self.function_project}/logs/{self.function_name}'
 
     def message(self):
         """Returns a human readable log message"""
@@ -148,7 +143,7 @@ class StructuredLog(object):
             'region': self.function_region,
         }
         resource = Resource(labels=resource_labels, type='cloud_function')
-        log_entry = {
+        return {
             'log_name': self.log_name,
             'labels': {
                 'event_id': self.event_id,
@@ -156,7 +151,6 @@ class StructuredLog(object):
             'severity': self.severity(),
             'resource': resource,
         }
-        return log_entry
 
 
 class NoOp(StructuredLog):
@@ -278,14 +272,15 @@ class EventHandler():
         self.project = event['project']
         self.zone = event['zone']
         self.vm_name = event['vm_name']
-        self.vm_uri = "projects/{}/zones/{}/instances/{}".format(
-            self.project, self.zone, self.vm_name
+        self.vm_uri = (
+            f"projects/{self.project}/zones/{self.zone}/instances/{self.vm_name}"
         )
+
         # https://cloud.google.com/functions/docs/env-var
         self.function_project = os.getenv('GCP_PROJECT')
         self.function_region = os.getenv('FUNCTION_REGION')
         self.function_name = os.getenv('FUNCTION_NAME')
-        self.debug = True if os.getenv('DEBUG') else False
+        self.debug = bool(os.getenv('DEBUG'))
 
     def load_configuration(self):
         """Loads configuration from the environment
@@ -325,10 +320,7 @@ class EventHandler():
             self.log_event(IgnoredEventSubtype(self.vm_uri, self.event_id))
             return 0
 
-        msg = "Handling event_id='{}' vm='{}'".format(
-            self.event_id,
-            self.vm_uri
-        )
+        msg = f"Handling event_id='{self.event_id}' vm='{self.vm_uri}'"
         self.log.info(msg)
 
         instance = self.get_instance(self.project, self.zone, self.vm_name)
@@ -366,10 +358,10 @@ class EventHandler():
         # `cloudfunctions.googleapis.com/cloud-functions` then message will not
         # be parsed from jsonPayload in the Console UI.
         log_name = (
-            'projects/{}/logs/reports%2F{}'
-        ).format(self.function_project, self.function_name)
-        jsonPayload = {'vm_uri': self.vm_uri}
-        jsonPayload.update(struct)
+            f'projects/{self.function_project}/logs/reports%2F{self.function_name}'
+        )
+
+        jsonPayload = {'vm_uri': self.vm_uri} | struct
         resource_labels = {
             'function_name': self.function_name,
             'project_id': self.function_project,
@@ -383,8 +375,8 @@ class EventHandler():
             },
             'severity': 'INFO',
             'resource': resource,
-        }
-        log_entry.update(kw)
+        } | kw
+
         jsonPayload['message'] = msg
         self.cloud_log.log_struct(info=jsonPayload, **log_entry)
 
@@ -407,17 +399,13 @@ class EventHandler():
         while request is not None:
             try:
                 response = request.execute()
-                for resource_record_set in response['rrsets']:
-                    records.append(resource_record_set)
+                records.extend(iter(response['rrsets']))
                 request = self.dns.resourceRecordSets().list_next(
                     previous_request=request,
                     previous_response=response)
             except HttpError as err:
-                msg = (
-                    'Could not get DNS records.  Check managed '
-                    'zones specified in DNS_VM_GC_DNS_ZONES '
-                    'exist in DNS_VM_GC_DNS_PROJECT.  Detail: {}'
-                ).format(err)
+                msg = f'Could not get DNS records.  Check managed zones specified in DNS_VM_GC_DNS_ZONES exist in DNS_VM_GC_DNS_PROJECT.  Detail: {err}'
+
                 self.log.error(msg)
                 request = None
         return records
@@ -465,7 +453,7 @@ class EventHandler():
         candidates = []
 
         for record in records:
-            if 'A' != record['type']:
+            if record['type'] != 'A':
                 self.log_event(NotARecord(self.vm_uri, self.event_id, record))
                 continue
             if instance != record['name'].split('.')[0]:
@@ -486,8 +474,7 @@ class EventHandler():
         """
         ip = None
         if 'networkInterfaces' in instance:
-            networkInterfaces = instance['networkInterfaces']
-            if networkInterfaces:
+            if networkInterfaces := instance['networkInterfaces']:
                 if 'networkIP' in networkInterfaces[0]:
                     ip = networkInterfaces[0]['networkIP']
         return ip
@@ -507,7 +494,7 @@ class EventHandler():
                 zone=compute_zone,
                 instance=instance).execute()
         except HttpError as err:
-            self.log.error("Getting {}: {}".format(self.vm_uri, err))
+            self.log.error(f"Getting {self.vm_uri}: {err}")
             result = {}
         return result
 
@@ -536,18 +523,14 @@ class EventHandler():
         event_json = base64.b64decode(data['data']).decode('utf-8')
         event = json.loads(event_json)
 
-        struct = {
+        return {
             'project': event['resource']['labels']['project_id'],
             'zone': event['resource']['labels']['zone'],
-            'vm_name': event['labels'][
-                'compute.googleapis.com/resource_name'
-            ],
+            'vm_name': event['labels']['compute.googleapis.com/resource_name'],
             'type': event['jsonPayload']['event_type'],
             'event_subtype': event['jsonPayload']['event_subtype'],
             'resource_type': event['resource']['type'],
         }
-
-        return struct
 
     def validate_event_type(self, event_type: str, event_subtype: str,
                             resource_type: str):
@@ -561,11 +544,11 @@ class EventHandler():
 
         Returns (bool): True if the event should be handled.
         """
-        if event_type == 'GCE_API_CALL':
-            if event_subtype == 'compute.instances.delete':
-                if resource_type == 'gce_instance':
-                    return True
-        return False
+        return (
+            event_type == 'GCE_API_CALL'
+            and event_subtype == 'compute.instances.delete'
+            and resource_type == 'gce_instance'
+        )
 
 
 class DnsVmGcApp():
@@ -599,10 +582,7 @@ class DnsVmGcApp():
         Python logs are sent to STDOUT and STDERR by default.  In GCF, these
         logs are associated on execution_id.
         """
-        if os.getenv('DEBUG'):
-            level = logging.DEBUG
-        else:
-            level = logging.INFO
+        level = logging.DEBUG if os.getenv('DEBUG') else logging.INFO
         # Make googleapiclient less noisy.
         # See https://github.com/googleapis/google-api-python-client/issues/299
         api_logger = logging.getLogger('googleapiclient')
@@ -645,15 +625,13 @@ class DnsVmGcApp():
             Number of records deleted across all managed zones.
         """
         handler = EventHandler(app=self, data=data, context=context)
-        result = handler.run()
-        return result
+        return handler.run()
 
 
 def main(data, context=None, http=None, session=None):
     if RuntimeState.app is None:
         RuntimeState.app = DnsVmGcApp(http=http, session=session)
-    result = RuntimeState.app.handle_event(data, context)
-    return result
+    return RuntimeState.app.handle_event(data, context)
 
 
 def dns_vm_gc(data, context=None):

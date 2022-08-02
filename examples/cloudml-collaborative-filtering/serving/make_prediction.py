@@ -75,7 +75,7 @@ def _get_instances(usernames_file):
         constants.USER_KEY: "",
         constants.ITEM_KEY: "",
     }
-    instance.update(json.loads(line))
+    instance |= json.loads(line)
     instances.append(instance)
   return instances
 
@@ -99,10 +99,10 @@ def _predict_json(project, model, instances, version):
     RuntimeError: predictions couldn't be made.
   """
   service = discovery.build("ml", "v1")
-  name = "projects/{}/models/{}".format(project, model)
+  name = f"projects/{project}/models/{model}"
 
   if version is not None:
-    name += "/versions/{}".format(version)
+    name += f"/versions/{version}"
 
   response = service.projects().predict(
       name=name,

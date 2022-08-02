@@ -73,7 +73,7 @@ def post(
     with open('config/train.yaml', 'rb') as config_yml:
         train_cfg = yaml.load(config_yml)
 
-    project_id = 'projects/{}'.format(cfg['project_id'])
+    project_id = f"projects/{cfg['project_id']}"
 
     cloudml = discovery.build('ml', 'v1')
 
@@ -108,8 +108,9 @@ def post(
 
     if name not in current_models:
         raise AssertionError(
-            'Please provide a model name from the following : {}'.format(
-                str(current_models)))
+            f'Please provide a model name from the following : {current_models}'
+        )
+
     training_inputs = {
         'scaleTier': train_cfg['scaleTier'],
         'masterType': train_cfg['masterType'],
@@ -128,6 +129,9 @@ def post(
 
     job_spec = {'jobId': jobid, 'trainingInput': training_inputs}
 
-    response = cloudml.projects().jobs().create(body=job_spec,
-                                                parent=project_id).execute()
-    return response
+    return (
+        cloudml.projects()
+        .jobs()
+        .create(body=job_spec, parent=project_id)
+        .execute()
+    )

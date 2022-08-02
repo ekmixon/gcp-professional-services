@@ -61,12 +61,9 @@ class GroupSync(object):
       ]
 
     credentials = auth_util.get_credentials(admin_email, scopes)
-    if self.use_cloud_identity:
-      service = build('cloudidentity', 'v1', credentials=credentials)
-    else:
-      service = build('admin', 'directory_v1', credentials=credentials)
-
-    return service
+    return (build('cloudidentity', 'v1', credentials=credentials)
+            if self.use_cloud_identity else build(
+                'admin', 'directory_v1', credentials=credentials))
 
   def get_group_members_as_list(self):
     """Retrieves the members of all groups in the domain as an array.
@@ -78,16 +75,13 @@ class GroupSync(object):
 
     all_group_members = []
     if self.use_cloud_identity:
-      ci_parent = 'identitysources/{}'.format(self.domain)
+      ci_parent = f'identitysources/{self.domain}'
       results = self.service.groups().list(parent=ci_parent).execute()
     else:
       results = self.service.groups().list(domain=self.domain).execute()
 
     for g in results.get('groups', []):
-      if self.use_cloud_identity:
-        group_id = g['groupKey']['id']
-      else:
-        group_id = g['email']
+      group_id = g['groupKey']['id'] if self.use_cloud_identity else g['email']
       members = self._list_group_members(group_id)
       group_members = zip([group_id] * len(members), members)
       all_group_members.extend(group_members)
@@ -106,17 +100,15 @@ class GroupSync(object):
       An array of strings containing the emails of group members.
     """
     if self.use_cloud_identity:
-      ci_parent = 'groups/{}'.format(group_id)
+      ci_parent = f'groups/{group_id}'
       results = self.service.memberships().list(parent=ci_parent).execute()
-      users = [m['memberKey']['id'] for m in results.get('memberships')]
+      return [m['memberKey']['id'] for m in results.get('memberships')]
     else:
       results = self.service.members().list(groupKey=group_id).execute()
-      users = [
-          m['email']
-          for m in results.get('members')
+      return [
+          m['email'] for m in results.get('members')
           if m.get('status', None) == 'ACTIVE'
       ]
-    return users
 
   def create_group_members_table(self, dataset_id, groups_users_table_name):
     """Creates a BigQuery table to store group membership data.
@@ -177,9 +169,8 @@ class GroupSync(object):
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = bigquery.job.WriteDisposition.WRITE_TRUNCATE
 
-    errors = self.bq_client.load_table_from_file(
+    return self.bq_client.load_table_from_file(
         csv_file, table_ref, rewind=True, job_config=job_config)
-    return errors
 
   @staticmethod
   def sync_all(domain, admin_email, dataset_id, groups_users_table_name,

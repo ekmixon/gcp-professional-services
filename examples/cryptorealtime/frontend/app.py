@@ -65,7 +65,9 @@ def query_data():
     trades_timestamps = defaultdict(callable_defaultdict_list)
     for row in table.read_rows(row_set=query_builder()):
         date_string = datetime.fromtimestamp(
-            int(row.row_key.decode('utf-8').split("#")[-2][0:-3]))
+            int(row.row_key.decode('utf-8').split("#")[-2][:-3])
+        )
+
         for column_family, cell in list(row.cells.items()):
             trades_values[column_family]["key"].append(
                 row.row_key.decode('utf-8'))

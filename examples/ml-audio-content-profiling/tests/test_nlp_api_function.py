@@ -27,7 +27,6 @@ class TestNLPAPIFunction(unittest.TestCase):
         """Test for get_api_result"""
         response = type('', (), {})()
 
-        entity_list = []
         entity_1 = type('entities', (), {
             'name': "episode",
             'type': language.enums.Entity.Type.WORK_OF_ART,
@@ -71,8 +70,7 @@ class TestNLPAPIFunction(unittest.TestCase):
         })()
         setattr(entity_1, 'sentiment', entity_1_sentiment)
         setattr(entity_2, 'sentiment', entity_2_sentiment)
-        entity_list.append(entity_1)
-        entity_list.append(entity_2)
+        entity_list = [entity_1, entity_2]
         setattr(response, 'entities', entity_list)
         setattr(response, 'language', "en")
 

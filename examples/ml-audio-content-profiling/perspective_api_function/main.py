@@ -102,10 +102,13 @@ def format_api_results(response: dict, text: dict) -> Union[dict, None]:
 
     try:
         toxicity = response['attributeScores']['TOXICITY']['summaryScore']['value']
-        return {'text': text['transcript'],
-                'start_time': text['start_time'] if 'start_time' in text else '',
-                'end_time': text['end_time'] if 'end_time' in text else '',
-                'toxicity': round(toxicity, 2)}
+        return {
+            'text': text['transcript'],
+            'start_time': text.get('start_time', ''),
+            'end_time': text.get('end_time', ''),
+            'toxicity': round(toxicity, 2),
+        }
+
 
     except Exception as e:
         logging.error(f'Extracting toxicity fields failed for '
@@ -230,9 +233,9 @@ def main(data: dict, context):
         transcript = json_msg['json_payload']
         toxicity = []
         for speech_exert in transcript:
-            response = get_perspective_api_results(perspective_client,
-                                                   speech_exert)
-            if response:
+            if response := get_perspective_api_results(
+                perspective_client, speech_exert
+            ):
                 per_segment_toxicity = format_api_results(response,
                                                           speech_exert)
                 toxicity.append(per_segment_toxicity)

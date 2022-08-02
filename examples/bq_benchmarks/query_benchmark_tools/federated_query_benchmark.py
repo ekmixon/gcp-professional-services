@@ -65,8 +65,8 @@ class FederatedQueryBenchmark:
         self.file_uri = file_uri
         file_pattern = r'fileType=(\w+)/compression=(\w+)/numColumns=(\d+)/columnTypes=(\w+)/numFiles=(\d+)/tableSize=(\w+)'
         self.file_type, self.compression, num_columns, column_types,\
-            num_files, table_size = \
-            re.findall(file_pattern, file_uri)[0]
+                num_files, table_size = \
+                re.findall(file_pattern, file_uri)[0]
         self.total_table_size = int(num_files) * int(table_size.split('MB')[0])
 
         self.results_table_name = results_table_name
@@ -150,8 +150,8 @@ class FederatedQueryBenchmark:
         file_formats = file_constants.FILE_CONSTANTS['sourceFormats']
         source_format = file_formats[self.file_type]
         external_config = bigquery.ExternalConfig(source_format=source_format)
-        external_config.source_uris = [self.file_uri + '/*']
-        if source_format != 'AVRO' and source_format != 'PARQUET':
+        external_config.source_uris = [f'{self.file_uri}/*']
+        if source_format not in ['AVRO', 'PARQUET']:
             main_table_util = table_util.TableUtil(self.native_table_id,
                                                    self.dataset_id)
             external_config.schema = main_table_util.table.schema
@@ -160,7 +160,7 @@ class FederatedQueryBenchmark:
             external_config.options.skip_leading_rows = 1
 
         external_config.compression = self.compression.upper()
-        table_id = self.native_table_id + '_external'
+        table_id = f'{self.native_table_id}_external'
         results_destination = '{0:s}.{1:s}.{2:s}_query_results'.format(
             self.bq_project, self.dataset_id, table_id)
         logging.info(

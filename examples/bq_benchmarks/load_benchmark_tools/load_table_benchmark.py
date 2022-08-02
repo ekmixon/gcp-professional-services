@@ -124,10 +124,10 @@ class LoadTableBenchmark:
         # gather file properties from the files' path
         # pylint: disable=line-too-long
         benchmark_details_pattern = \
-            r'fileType=(\w+)/compression=(\w+)/numColumns=(\d+)/columnTypes=(\w+)/numFiles=(\d+)/tableSize=(\w+)'
+                r'fileType=(\w+)/compression=(\w+)/numColumns=(\d+)/columnTypes=(\w+)/numFiles=(\d+)/tableSize=(\w+)'
         self.file_type, compression, self.num_columns, self.column_types, \
-            num_files, table_size = \
-            re.findall(benchmark_details_pattern, self.dirname)[0]
+                num_files, table_size = \
+                re.findall(benchmark_details_pattern, self.dirname)[0]
 
         self.compression_format = (
             file_constants.FILE_CONSTANTS['compressionFormats'][compression])
@@ -141,7 +141,7 @@ class LoadTableBenchmark:
             self.staging_dataset_id,
             project=self.staging_project,
         )
-        if self.file_type == 'parquet' or self.file_type == 'avro':
+        if self.file_type in ['parquet', 'avro']:
             self.bq_schema = None
         else:
             self.bq_schema = source_staging_table_util.table.schema

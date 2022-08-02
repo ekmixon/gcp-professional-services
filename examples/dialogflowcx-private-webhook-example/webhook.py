@@ -46,8 +46,11 @@ async def webhook(webhook_request: WebhookRequest):
         response.add_text_response('Hi from a Python Webhook!')
     elif tag == "echo":
         message = webhook_request.text
-        response.add_text_response('You said: ' + message)
-    else :
-        response.add_text_response('There are no fulfillment responses defined for tag: ' + tag)
+        response.add_text_response(f'You said: {message}')
+    else:
+        response.add_text_response(
+            f'There are no fulfillment responses defined for tag: {tag}'
+        )
+
     json_response = jsonable_encoder(response)
     return JSONResponse(content=json_response)

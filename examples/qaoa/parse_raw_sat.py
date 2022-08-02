@@ -52,7 +52,7 @@ class Sat(namedtuple('_Sat', ['clauses', 'num_vars', 'source_filename'])):
         Returns:
             Amount of correc clauses.
         """
-        return sum([self._check_clause(x, solution) for x in self.clauses])
+        return sum(self._check_clause(x, solution) for x in self.clauses)
 
 
 class Clause(list):
@@ -69,7 +69,7 @@ class Clause(list):
 
     def _check(self):
         abs_vars = [abs(el) for el in self]
-        if not len(set(abs_vars)) == len(self):
+        if len(set(abs_vars)) != len(self):
             raise ValueError('No duplicates in vars are allowed!')
         if 0 in self:
             raise ValueError('Variable with 0 index is not allowed!')
@@ -100,7 +100,7 @@ def _parse_clause(line):
     if '-X0' in raw:
         vs.remove(1)
         vs.append(-1)
-    if not int(c) == (1 - len([x for x in vs if x < 0])):
+    if int(c) != 1 - len([x for x in vs if x < 0]):
         raise ValueError('')
     return vs
 
@@ -115,11 +115,11 @@ def _parse_lines_iterator(lines):
         num_vars - amount of variables in a CNF problem
     """
     clauses = []
-    if not next(lines).strip() == 'Minimize':
+    if next(lines).strip() != 'Minimize':
         raise ValueError('Wrong file format')
-    if not next(lines).strip() == '0':
+    if next(lines).strip() != '0':
         raise ValueError('Wrong file format')
-    if not next(lines).strip() == 'Subject To':
+    if next(lines).strip() != 'Subject To':
         raise ValueError('Wrong file format')
     while True:
         line = next(lines).strip()
@@ -127,13 +127,13 @@ def _parse_lines_iterator(lines):
             break
         p = _parse_clause(line)
         clauses.append(Clause(p))
-    if not next(lines).strip() == 'Binaries':
+    if next(lines).strip() != 'Binaries':
         raise ValueError('Wrong file format')
     num_vars = len(next(lines).strip().split())
-    max_ind = max([max([abs(ind) for ind in c]) for c in clauses])
-    if not num_vars >= max_ind:
+    max_ind = max(max(abs(ind) for ind in c) for c in clauses)
+    if num_vars < max_ind:
         raise ValueError('Wrong file format')
-    if not next(lines).strip() == 'End':
+    if next(lines).strip() != 'End':
         raise ValueError('Wrong file format')
     return clauses, num_vars
 
@@ -204,7 +204,7 @@ def _proccess_all(path, transform=False):
         _check_stat(stats['max_anc_bits'], anc_bits, f)
         problems.append(sat)
     for k, v in stats.items():
-        print('%s: %s in %s' % (k, v['value'], v['filename']))
+        print(f"{k}: {v['value']} in {v['filename']}")
     print('Success!')
 
 

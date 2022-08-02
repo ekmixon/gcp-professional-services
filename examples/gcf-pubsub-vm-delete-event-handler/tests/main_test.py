@@ -42,12 +42,13 @@ class HttpMockSequenceRecorder(HttpMockSequence):
 @pytest.fixture
 def mock_http():
     """Mocks an http instance suitable for use with discovery based API's."""
-    http = HttpMockSequenceRecorder([
-        # Get IP address path
-        ({'status': '200'}, readfile('compute-v1.json')),
-        ({'status': '200'}, readfile('dns-v1.json')),
-    ])
-    return http
+    return HttpMockSequenceRecorder(
+        [
+            # Get IP address path
+            ({'status': '200'}, readfile('compute-v1.json')),
+            ({'status': '200'}, readfile('dns-v1.json')),
+        ]
+    )
 
 
 @pytest.fixture

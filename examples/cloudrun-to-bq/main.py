@@ -66,10 +66,9 @@ class BQApiClient:
         LOG.debug("Inserting data  in to %s:%s:%s",
                   PROJECT_ID,  dataset, table)
         table = self._client.dataset(dataset).table(table)
-        errors = self._client.insert_rows_json(table,
-                                               json_rows=[data],
-                                               retry=retry.Retry(deadline=30))
-        if errors:
+        if errors := self._client.insert_rows_json(
+            table, json_rows=[data], retry=retry.Retry(deadline=30)
+        ):
             raise BigQueryError(errors)
         LOG.debug("Successfully Inserted data in to %s:%s:%s",
                   PROJECT_ID,  dataset, table)

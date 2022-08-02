@@ -54,19 +54,24 @@ def main():
     args = parser.parse_args()
 
     # Force trailing slash because logic in avearge-speed DAG expects it this way.
-    raw_path = args.raw_path if args.raw_path.endswith(
-        '/') else args.raw_path + '/'
+    raw_path = (
+        args.raw_path if args.raw_path.endswith('/') else f'{args.raw_path}/'
+    )
+
     bucket = raw_path.lstrip('gs://').split('/')[0]
 
     # This transformed path is relative to the bucket Variable in the Airflow environment.
     # Note, the gs://<bucket> prefix is stripped because the GoogleCloudStorageToBigQueryOperator
     #  expects the source_objects as relative to the bucket param
     transformed_path = raw_path.replace('/raw-', '/transformed-').replace(
-        'gs://' + bucket + '/', '')
+        f'gs://{bucket}/', ''
+    )
 
-    failed_path = raw_path.replace('/raw-',
-                                   '/failed-').replace('gs://' + bucket + '/',
-                                                       '')
+
+    failed_path = raw_path.replace('/raw-', '/failed-').replace(
+        f'gs://{bucket}/', ''
+    )
+
 
     # Note, we need to remove the trailing slash because of how the the spark saveAsTextFile
     # method works.
@@ -83,12 +88,10 @@ def main():
 
     # The api signature requires a unique run_id
     payload = {
-        'run_id':
-        'post-triggered-run-%s' %
-        datetime.now(_LOCAL_TZ).strftime('%Y%m%d%H%M%s%Z'),
-        'conf':
-        json.dumps(conf),
+        'run_id': f"post-triggered-run-{datetime.now(_LOCAL_TZ).strftime('%Y%m%d%H%M%s%Z')}",
+        'conf': json.dumps(conf),
     }
+
 
     return iap.make_iap_request(args.url,
                                 args.iapClientId,

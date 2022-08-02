@@ -20,7 +20,7 @@ output_path = sys.argv[1]
 fake = Faker()
 print(f"Writing Test SSNs to {output_path}")
 with open(output_path, 'w') as f:
-  for i in range(0, 1000):
+  for _ in range(1000):
     ssn = fake.ssn()
     f.write(f'{ssn}\n')
 print("Done!")

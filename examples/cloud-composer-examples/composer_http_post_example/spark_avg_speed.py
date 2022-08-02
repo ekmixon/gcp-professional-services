@@ -65,8 +65,6 @@ class AverageSpeedEnhancer(object):
                     with an average_speed field. (This argument object gets modified in place by
                     this method).
         """
-        _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S UTC'
-        _SECONDS_IN_AN_HOUR = 3600.0
         # There is some data quality issue in the public table chosen for this example.
         if record.get('store_and_fwd_flag') and record.get(
                 'store_and_fwd_flag') not in 'YN':
@@ -74,6 +72,7 @@ class AverageSpeedEnhancer(object):
 
         if (record['pickup_datetime'] and record['dropoff_datetime']
                 and record['trip_distance'] > 0):
+            _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S UTC'
             # Parse strings output by BigQuery to create datetime objects
             pickup = datetime.datetime.strptime(record['pickup_datetime'],
                                                 _DATETIME_FORMAT)
@@ -82,9 +81,10 @@ class AverageSpeedEnhancer(object):
             elapsed = dropoff - pickup
             if elapsed > datetime.timedelta(
                     0):  # Only calculate if drop off after pick up.
+                _SECONDS_IN_AN_HOUR = 3600.0
                 # Calculate speed in miles per hour.
                 record['average_speed'] = _SECONDS_IN_AN_HOUR * record['trip_distance'] / \
-                                           elapsed.total_seconds()
+                                               elapsed.total_seconds()
             else:  # Speed is either negative or undefined.
                 record['average_speed'] = None
         elif record['trip_distance'] == 0.0:
@@ -92,8 +92,7 @@ class AverageSpeedEnhancer(object):
         else:  # One of the fields required for calculation is None.
             record['average_speed'] = None
 
-        csv_record = self.dict_to_csv(record)
-        return csv_record
+        return self.dict_to_csv(record)
 
 
 def main(sc, gcs_path_raw, gcs_path_transformed):

@@ -87,12 +87,10 @@ class CreateCustomMetricsTest(unittest.TestCase):
   def testCreateCustomMetrics_NoMetricsMissing(self, mock_build):
     # Mocking that all metrics were found in API response.
     mocked_existing_metrics_result = {
-      'metricDescriptors': [
-        {
-          'name': 'projects/some_project_id/metricDescriptors/%s' % m
-        }
-        for m in constants.CUSTOM_METRICS_MAP.keys()
-      ]
+        'metricDescriptors': [{
+            'name':
+            f'projects/some_project_id/metricDescriptors/{m}'
+        } for m in constants.CUSTOM_METRICS_MAP.keys()]
     }
     mock_dict = mock.MagicMock()
     mock_dict.__getitem__.side_effect = (

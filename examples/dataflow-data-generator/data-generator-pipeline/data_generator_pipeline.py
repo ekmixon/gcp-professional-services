@@ -93,8 +93,7 @@ def run(argv=None):
 
     if data_args.primary_key_cols:
         for key in data_args.primary_key_cols.split(','):
-            rows |= 'Enforcing primary key: {}'.format(
-                key) >> EnforcePrimaryKeys(key)
+            rows |= (f'Enforcing primary key: {key}' >> EnforcePrimaryKeys(key))
 
     if data_args.csv_schema_order:
         (rows

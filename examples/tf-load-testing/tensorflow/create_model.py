@@ -67,7 +67,7 @@ def get_feature_columns(dataframe):
     age = feature_column.numeric_column('Age')
     age_buckets = feature_column.bucketized_column(age, boundaries=[1, 2, 3, 4, 5])
     feature_columns.append(age_buckets)
-    
+
     # indicator_columns
     indicator_column_names = ['Type', 'Color1', 'Color2', 'Gender', 'MaturitySize',
                               'FurLength', 'Vaccinated', 'Sterilized', 'Health']
@@ -108,9 +108,11 @@ def get_model(feature_columns, feature_layer_inputs):
     layer = layers.Dense(512, activation='relu')(layer)
     layer = layers.Dropout(.1)(layer)
     layer = layers.Dense(1)(layer)
-    
+
     model = tf.keras.Model(
-        inputs=[v for v in feature_layer_inputs.values()], outputs=layer)
+        inputs=list(feature_layer_inputs.values()), outputs=layer
+    )
+
     model.compile(
         optimizer='adam',
         loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),

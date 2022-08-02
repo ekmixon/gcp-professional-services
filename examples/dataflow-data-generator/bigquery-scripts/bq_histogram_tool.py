@@ -33,7 +33,7 @@ def bq_key_column_histogram(key_cols, input_table, min_date="2000-01-01"):
         format(field_name=key) for key in key_cols
     ]
 
-    sql = """
+    return """
       SELECT
         COUNT(*) AS frequency,
         {hashes}
@@ -43,12 +43,12 @@ def bq_key_column_histogram(key_cols, input_table, min_date="2000-01-01"):
         date >= "{min_date}"
       GROUP BY
         {group_by}
-    """.format(hashes=', '.join(hashes),
-               input_table=input_table,
-               min_date=min_date,
-               group_by=', '.join(key_cols))
-
-    return sql
+    """.format(
+        hashes=', '.join(hashes),
+        input_table=input_table,
+        min_date=min_date,
+        group_by=', '.join(key_cols),
+    )
 
 
 def profile_distribution(input_table, output_table, key_cols):
@@ -90,15 +90,15 @@ def profile_distribution(input_table, output_table, key_cols):
     # Define query API request.
     query_job = bq_cli.query(sql, job_config=query_job_config)
 
-    print(('running query: \n {}'.format(sql)))
+    print(f'running query: \n {sql}')
     t0 = time.time()
     # Synchronous API call to execute query.
     res = query_job.result()
     t1 = time.time()
-    print(('query ran in {} seconds.'.format(t1 - t0)))
+    print(f'query ran in {t1 - t0} seconds.')
 
     count = res.num_results
-    print(('resulting histogrram table has {} results.'.format(count)))
+    print(f'resulting histogrram table has {count} results.')
 
 
 def bq_standard_sql_table_ref_type(
@@ -136,9 +136,10 @@ def main(argv=None):
     known_args.key_cols = known_args.key_cols.split(',')
 
     if len(known_args.key_cols) > 3:
-        raise argparse.ArgumentError('Currently only 3 key columns supported. '
-                                     'Found {} key columns.'.format(
-                                         len(key_cols)))
+        raise argparse.ArgumentError(
+            f'Currently only 3 key columns supported. Found {len(key_cols)} key columns.'
+        )
+
 
     profile_distribution(input_table=known_args.input_table,
                          output_table=known_args.output_table,
@@ -149,4 +150,4 @@ if __name__ == "__main__":
     start = time.time()
     main()
     end = time.time()
-    print(('input_table profiled in {} seconds.'.format(end - start)))
+    print(f'input_table profiled in {end - start} seconds.')

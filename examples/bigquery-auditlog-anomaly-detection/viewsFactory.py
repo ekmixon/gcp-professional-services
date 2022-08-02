@@ -238,23 +238,21 @@ class CreateView():
 
         client = bigquery.Client(location=self.location,
                                  project=self.destination_project_id)
-        print("Client creating using default project: {}".format(
-            client.project))
+        print(f"Client creating using default project: {client.project}")
         shared_dataset_ref = client.dataset(self.destination_dataset_id)
         view_ref = shared_dataset_ref.table(self.summary_table_name)
         view = bigquery.Table(view_ref)
         try:
             dataset_id = self.dataset_id
             client.get_table(view_ref)
-            print("Summary View already exists {}".format(
-                self.summary_table_name))
+            print(f"Summary View already exists {self.summary_table_name}")
         except NotFound:
             print(dataset_id)
             view.view_query = sql_template.format(self.data_project_id,
                                                   dataset_id,
                                                   self.audit_log_table)
             view = client.create_table(view)
-            print("Successfully created view at {}".format(view.full_table_id))
+            print(f"Successfully created view at {view.full_table_id}")
 
     def create_all_job_view(self):
         self.create_completed_job_view()

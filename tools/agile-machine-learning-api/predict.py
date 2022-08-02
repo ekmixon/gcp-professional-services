@@ -34,11 +34,11 @@ def post(cfg, model_name, instances, version_name=None):
         Response body {"output" : [prediction]}
     """
     api = discovery.build('ml', 'v1')
-    project_id = 'projects/{}'.format(cfg['project_id'])
+    project_id = f"projects/{cfg['project_id']}"
     model_response = api.projects().models().list(parent=project_id).execute()
     list_of_models = [a['name'] for a in model_response['models']]
-    model_id = '{}/models/{}'.format(project_id, model_name)
-    version_id = '{}/versions/{}'.format(model_id, version_name)
+    model_id = f'{project_id}/models/{model_name}'
+    version_id = f'{model_id}/versions/{version_name}'
 
     if model_id in list_of_models:
         version_response = api.projects().models(

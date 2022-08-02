@@ -99,7 +99,7 @@ class TestBucketUtil(object):
             file_params=self.test_file_parameters)
         existing_paths = self.bucket_util.get_existing_paths(
             run_federated_query_benchmark=False)
-        expected_paths = set([self.blob1_name, self.blob2_name])
+        expected_paths = {self.blob1_name, self.blob2_name}
         assert existing_paths == expected_paths
 
     def teardown(self):

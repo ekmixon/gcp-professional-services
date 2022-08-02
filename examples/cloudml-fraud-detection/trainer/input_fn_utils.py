@@ -40,9 +40,10 @@ def make_input_schema():
     specifies the shape and dtypes.
   """
 
-  schema = {}
-  for c in constants.FEATURE_COLUMNS:
-    schema[c] = tf.FixedLenFeature(shape=[], dtype=tf.float32)
+  schema = {
+      c: tf.FixedLenFeature(shape=[], dtype=tf.float32)
+      for c in constants.FEATURE_COLUMNS
+  }
   schema[constants.LABEL_COLUMN] = tf.FixedLenFeature(shape=[], dtype=tf.int64)
   schema[constants.KEY_COLUMN] = tf.FixedLenFeature(shape=[], dtype=tf.int64)
   return schema
@@ -69,7 +70,7 @@ def read_dataset(input_dir, mode, batch_size):
   def _parser(data):
     features = {c: data[c] for c in constants.FEATURE_COLUMNS}
     key = constants.KEY_COLUMN
-    features.update({key: data[key]})
+    features[key] = data[key]
     labels = data[constants.LABEL_COLUMN]
     return features, labels
 

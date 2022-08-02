@@ -84,8 +84,7 @@ class TestStagingTableGenerator(object):
                 "mode": "REQUIRED"
             }]
         }
-        with open(self.json_schema_path + '/50_STRING_50_NUMERIC_4.json',
-                  'w') as sch2:
+        with open(f'{self.json_schema_path}/50_STRING_50_NUMERIC_4.json', 'w') as sch2:
             json.dump(schema_50_string_50_numeric, sch2)
 
         # set up test params
@@ -136,7 +135,7 @@ class TestStagingTableGenerator(object):
         self.bq_client.create_dataset(self.resized_dataset)
 
         self.test_staging_table_generator = \
-            staging_table_generator.StagingTableGenerator(
+                staging_table_generator.StagingTableGenerator(
                 project=project_id,
                 staging_dataset_id=self.staging_dataset_id,
                 resized_dataset_id=self.resized_dataset_id,
@@ -185,7 +184,7 @@ class TestStagingTableGenerator(object):
                 'Test needs project_id to pass. '
                 'Add --project_id={your project ID} to test command')
         self.test_staging_table_generator = \
-            staging_table_generator.StagingTableGenerator(
+                staging_table_generator.StagingTableGenerator(
                 project=project_id,
                 staging_dataset_id=self.staging_dataset_id,
                 resized_dataset_id=self.resized_dataset_id,
@@ -229,4 +228,4 @@ class TestStagingTableGenerator(object):
         """
         self.df_staging_bucket.delete(force=True)
 
-        os.remove(self.json_schema_path + '/50_STRING_50_NUMERIC_4.json')
+        os.remove(f'{self.json_schema_path}/50_STRING_50_NUMERIC_4.json')

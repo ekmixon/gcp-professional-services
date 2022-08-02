@@ -63,17 +63,12 @@ def get_or_create_endpoint(project_id: str,
       location=data_region,
       staging_bucket=data_pipeline_root)
 
-  # Check if the named endpoint exists
-  endpoints = aiplatform.Endpoint.list(
+  if endpoints := aiplatform.Endpoint.list(
       project=project_id,
       location=data_region,
       filter=f'display_name="{display_name}"',
-      order_by='create_time desc'
-  )
-
-  # If create_if_not_exists is True and no existing
-  # endpoint with the display name, create one
-  if endpoints:
+      order_by='create_time desc',
+  ):
     model_endpoint = endpoints[0]
     logging.info(f'Endpoint {model_endpoint.name} is found')
   elif create_if_not_exists:

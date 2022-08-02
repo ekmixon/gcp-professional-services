@@ -83,7 +83,7 @@ def get_pyarrow_translated_schema(string_schema):
             logging.error(error_message)
             raise ValueError(error_message)
         else:
-            nullable = False if field_mode == 'REQUIRED' else True
+            nullable = field_mode != 'REQUIRED'
             pa_field = pa.field(name=field_name,
                                 type=converted_type
                                 #nullable=nullable

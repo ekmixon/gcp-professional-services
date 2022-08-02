@@ -71,15 +71,15 @@ class DataTransformation:
         # Strip out return characters and quote characters.
         schema = parse_table_schema_from_json(self.schema_str)
 
-        field_map = [f for f in schema.fields]
+        field_map = list(schema.fields)
 
         # Use a CSV Reader which can handle quoted strings etc.
         reader = csv.reader(string_input.split('\n'))
+        # Our source data only contains year, so default January 1st as the
+        # month and day.
+        month = '01'
+        day = '01'
         for csv_row in reader:
-            # Our source data only contains year, so default January 1st as the
-            # month and day.
-            month = '01'
-            day = '01'
             # The year comes from our source data.
             year = csv_row[2]
 

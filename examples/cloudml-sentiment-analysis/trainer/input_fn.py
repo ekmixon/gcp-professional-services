@@ -94,11 +94,10 @@ def parse_raw_text(sentence):
   tokens = tf.regex_replace(sentence, _CHAR_TO_FILTER_OUT, ' ',
                             replace_global=True)
   sparse_sequence = tf.string_split(tokens)
-  features = {
+  return {
       constants.TOKENS: sparse_sequence,
-      constants.SEQUENCE_LENGTH: get_sparse_tensor_size(sparse_sequence)
+      constants.SEQUENCE_LENGTH: get_sparse_tensor_size(sparse_sequence),
   }
-  return features
 
 
 def make_input_fn(input_dir, batch_size, training=True, num_epochs=None,

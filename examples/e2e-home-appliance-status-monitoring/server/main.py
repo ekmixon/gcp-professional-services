@@ -17,6 +17,7 @@
 This file implements a HTTPS server, it is deployed in GAE.
 
 """
+
 import base64
 import json
 import logging
@@ -33,7 +34,7 @@ MODEL_NAME = os.environ['MODEL_NAME']
 DATASET_ID = os.environ['DATASET_ID']
 SEQ_LEN = int(os.environ['SEQ_LEN'])
 PUB_TOPIC = os.environ['PUB_TOPIC']
-FEAT_COLS = ['ActivePower_{}'.format(i) for i in range(1, SEQ_LEN + 1)]
+FEAT_COLS = [f'ActivePower_{i}' for i in range(1, SEQ_LEN + 1)]
 
 app = Flask(__name__)
 ml_service = googleapiclient.discovery.build('ml', 'v1')
@@ -68,15 +69,17 @@ def process_msg():
     time_stamp = data['timestamp']
     active_power = data['power']
     device_id = data['device_id']
-    logging.info('0. Got msg from device: {}'.format(device_id))
+    logging.info(f'0. Got msg from device: {device_id}')
 
     # forward the data to CMLE
-    instance = {k:v for k, v in zip(FEAT_COLS, active_power)}
-    response = ml_service.projects().predict(
-        name='projects/{}/models/{}'.format(PROJECT_ID, MODEL_NAME),
-        body={'instances': [instance]}
-    ).execute()
-    logging.info('1. CMLE returned: {}'.format(response))
+    instance = dict(zip(FEAT_COLS, active_power))
+    response = (ml_service.projects().predict(
+        name=f'projects/{PROJECT_ID}/models/{MODEL_NAME}',
+        body={
+            'instances': [instance]
+        },
+    ).execute())
+    logging.info(f'1. CMLE returned: {response}')
     preds = response['predictions'][0]
     probs = preds['probabilities']
 
@@ -87,15 +90,13 @@ def process_msg():
             'time': time_stamp}
     data = json.dumps(data).encode('utf-8')
     publisher.publish(topic_path, data=data)
-    logging.info('2. Result published: {}'.format(data))
+    logging.info(f'2. Result published: {data}')
 
     # write data to BQ
-    query = ('INSERT INTO EnergyDisaggregation.ActivePower (time, device_id, power) '
-             'VALUES (timestamp("{}"), "{}", {});'.format(
-                 time_stamp[-1], device_id, active_power[-1]))
+    query = f'INSERT INTO EnergyDisaggregation.ActivePower (time, device_id, power) VALUES (timestamp("{time_stamp[-1]}"), "{device_id}", {active_power[-1]});'
     query_job = bq_client.query(query)
     _ = query_job.result()
-    logging.info('3. Query executed: {}'.format(query))
+    logging.info(f'3. Query executed: {query}')
 
     # write CMLE result to BQ
     table_ref = bq_client.dataset(DATASET_ID).table('Predictions')
@@ -105,14 +106,14 @@ def process_msg():
         for i, prob in enumerate(probs)
     ]
     errors = bq_client.insert_rows(table, rows_to_insert)
-    logging.info('4. Resultes recorded: {}'.format(rows_to_insert))
+    logging.info(f'4. Resultes recorded: {rows_to_insert}')
     if errors:
-      raise ValueError('{}'.format(errors))
+      raise ValueError(f'{errors}')
 
     # ack
     return 'OK', 200
   except Exception as e:
-    logging.info('Error: {}'.format(e))
+    logging.info(f'Error: {e}')
     return 'Error', 201
 
 

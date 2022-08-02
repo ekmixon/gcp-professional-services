@@ -30,7 +30,7 @@ def input_fn(input_dir, mode, batch_size, num_epochs, label_name=None,
     suffix = '.tfrecord'
     num_cpus = multiprocessing.cpu_count()
 
-    file_pattern = os.path.join(input_dir, 'data', prefix, prefix+'*'+suffix)
+    file_pattern = os.path.join(input_dir, 'data', prefix, f'{prefix}*{suffix}')
     filenames = tf.matching_files(file_pattern)
     dataset = tf.data.TFRecordDataset(filenames=filenames, buffer_size=None,
                                       num_parallel_reads=num_cpus)

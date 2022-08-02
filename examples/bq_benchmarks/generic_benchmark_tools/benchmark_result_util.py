@@ -128,10 +128,10 @@ class BenchmarkResultUtil(ABC):
 
         """
         benchmark_details_pattern = \
-            r'gs://([\w\'-]+)/fileType=(\w+)/compression=(\w+)/numColumns=(\d+)/columnTypes=(\w+)/numFiles=(\d+)/tableSize=(\d+)(\w+)'
+                r'gs://([\w\'-]+)/fileType=(\w+)/compression=(\w+)/numColumns=(\d+)/columnTypes=(\w+)/numFiles=(\d+)/tableSize=(\d+)(\w+)'
         bucket_name, file_type, compression, num_columns, column_types, \
-            num_files, staging_data_size, staging_data_unit = \
-            re.findall(benchmark_details_pattern, file_uri)[0]
+                num_files, staging_data_size, staging_data_unit = \
+                re.findall(benchmark_details_pattern, file_uri)[0]
         compression_format = (
             file_constants.FILE_CONSTANTS['compressionFormats'][compression])
         file_name_prefix = 'fileType={0:s}/compression={1:s}/numColumns={2:s}/columnTypes={3:s}/numFiles={4:s}/tableSize={5:s}{6:s}'.format(
@@ -147,16 +147,15 @@ class BenchmarkResultUtil(ABC):
         file_name = '{0:s}/file1.{1:s}'.format(file_name_prefix, file_ext)
 
         file_size = float(bucket.get_blob(file_name).size) / BYTES_IN_MB
-        properties_from_file_path = dict()
-        properties_from_file_path['fileType'] = file_type
-        properties_from_file_path['compressionType'] = compression_format
-        properties_from_file_path['numColumns'] = num_columns
-        properties_from_file_path['columnTypes'] = column_types
-
-        properties_from_file_path['numFiles'] = num_files
-        properties_from_file_path['fileSize'] = file_size
-        properties_from_file_path['stagingDataSize'] = staging_data_size
-        return properties_from_file_path
+        return {
+            'fileType': file_type,
+            'compressionType': compression_format,
+            'numColumns': num_columns,
+            'columnTypes': column_types,
+            'numFiles': num_files,
+            'fileSize': file_size,
+            'stagingDataSize': staging_data_size,
+        }
 
     def insert_results_row(self):
         """Gathers the results of a load job into a benchmark table.
@@ -249,10 +248,12 @@ class LoadBenchmarkResultUtil(BenchmarkResultUtil):
 
     def _set_job_properties(self):
         """Sets load specific properties."""
-        load_properties = dict()
-        load_properties['destinationTable'] = '{0:s}.{1:s}.{2:s}'.format(
-            self.project_id, self.load_dataset_id, self.load_table_id)
-        load_properties['sourceURI'] = self.job_source_uri
+        load_properties = {
+            'destinationTable': '{0:s}.{1:s}.{2:s}'.format(
+                self.project_id, self.load_dataset_id, self.load_table_id
+            ),
+            'sourceURI': self.job_source_uri,
+        }
 
         # get properties from benchmark table
         benchmark_table_util = table_util.TableUtil(self.load_table_id,
@@ -266,7 +267,7 @@ class LoadBenchmarkResultUtil(BenchmarkResultUtil):
         # get properties from file
         properties_from_file_path = self._get_properties_from_file_path(
             self.job_source_uri)
-        load_properties.update(properties_from_file_path)
+        load_properties |= properties_from_file_path
 
         self.results_dict['loadProperties'] = load_properties
 
@@ -316,29 +317,30 @@ class QueryBenchmarkResultUtil(BenchmarkResultUtil):
         self._set_job_properties()
 
     def _set_job_properties(self):
-        query_properties = dict()
-        query_properties['query'] = self.bql
-        query_properties['queryCategory'] = self.query_category
-
-        # get properties from job
-        query_properties['totalBytesBilled'] = self.job.total_bytes_billed
-        query_properties['totalBytesProcessed'] = self.job.total_bytes_processed
+        query_properties = {
+            'query': self.bql,
+            'queryCategory': self.query_category,
+            'totalBytesBilled': self.job.total_bytes_billed,
+            'totalBytesProcessed': self.job.total_bytes_processed,
+        }
 
         # get main table properties
-        main_table_properties = dict()
-        main_table_properties['tableType'] = self.table_type
-        main_table_properties['tableName'] = self.main_table_name
+        main_table_properties = {
+            'tableType': self.table_type,
+            'tableName': self.main_table_name,
+        }
+
         main_table_util = table_util.TableUtil(self.main_table_name,
                                                self.table_dataset_id)
         main_table_util.set_table_properties()
         main_table_properties['equivalentBqTableSize'] = \
-            main_table_util.size_in_mb
+                main_table_util.size_in_mb
         main_table_properties['fileURI'] = self.file_uri
 
         # get properties from file path
         properties_from_file_path = self._get_properties_from_file_path(
             self.file_uri)
-        main_table_properties.update(properties_from_file_path)
+        main_table_properties |= properties_from_file_path
         del main_table_properties['stagingDataSize']
 
         query_properties['mainTable'] = main_table_properties

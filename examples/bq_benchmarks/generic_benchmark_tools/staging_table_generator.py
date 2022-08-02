@@ -128,7 +128,7 @@ class StagingTableGenerator(object):
         # self.create_staging_tables()
         tables = list(self.bq_client.list_tables(staging_dataset))
         for table in tables:
-            for i in range(0, len(sizes)):
+            for i in range(len(sizes)):
                 # If the size of the current iteration is the smallest size
                 # in the sizes list, use the corresponding staging table
                 # created in create_resized_table() as the source base table.
